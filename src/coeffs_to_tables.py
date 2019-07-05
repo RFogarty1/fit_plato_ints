@@ -12,6 +12,21 @@ class CoeffsTablesConverter():
 		self._integInfo = list(integInfoTables)
 		self._integHolder = integHolder
 
+
+	@property
+	def coeffs(self):
+		outCoeffs = list()
+		for aRep in self._analyticalReps:
+			outCoeffs.extend(aRep.coeffs)
+		return outCoeffs
+
+	@coeffs.setter
+	def coeffs(self,val:list):
+		startIdx = 0
+		for aRep in self._analyticalReps:
+			aRep.coeffs = val[startIdx:startIdx+aRep.nCoeffs]
+			startIdx += aRep.nCoeffs
+
 	def writeTables(self):
 		self._updateTables()
 		self._writeTables()

@@ -18,8 +18,11 @@ class AnalyticalIntRepr():
 		Raises:
 			NotImplementedError: If sub-class hasnt overwritten method
 		"""
-		return NotImplementedError("evalAtListOfXVals not implemented on child class")
+		raise NotImplementedError("evalAtListOfXVals not implemented on child class")
 
+	@property
+	def nCoeffs(self):
+		raise NotImplementedError("nCoeffs property getter not implemented on child class")
 
 class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 
@@ -46,7 +49,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		elif nPoly is None:
 			self.nPoly = len(startCoeffs)
 		elif startCoeffs is None:
-			self.coeffs = [0.0 for x in len(nPoly)]
+			self.coeffs = [0.0 for x in range(nPoly)]
 		else:
 			self.nPoly = nPoly
 			self.coeffs = list(startCoeffs)
@@ -79,4 +82,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		return outArray
 
 
+	@property
+	def nCoeffs(self):
+		return len(self.coeffs)
 

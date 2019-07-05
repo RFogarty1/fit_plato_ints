@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import copy
+import itertools as it
 import os
 import sys
 import unittest
@@ -46,7 +47,7 @@ class TestIntegralHolder(unittest.TestCase):
 		self.assertEqual(testSetTable, self.testObjA.getIntegTable(integStr, atomA, atomB) )
 		
 
-class TestCoeffsTableConverter(unittest.TestCase):
+class TestCoeffsTableConverterWriteTables(unittest.TestCase):
 
 	def setUp(self):
 		self.atomPairNames = [("Xa","Xb")]
@@ -65,8 +66,7 @@ class TestCoeffsTableConverter(unittest.TestCase):
 		self.testObj = tCode.CoeffsTablesConverter([mockedAnalyticalRepr], [integInfo], integHolder)
 
 	def tearDown(self):
-		pass
-		#TODO: NEED TO REMOVE THE *.bdt file i created
+		os.remove(self.outFileA)
 
 	def testCorrectlyWritesPairPot_singleFile(self):
 		expPPCorr = self.integDicts[0]["pairpot"][0]
@@ -75,12 +75,37 @@ class TestCoeffsTableConverter(unittest.TestCase):
 		self.testObj.writeTables() #Will always update before writing them
 		actualPPCorr = parseTbint.getIntegralsFromBdt(self.outFileA)["PairPotCorrection0"][0]
 
-		print("actual PPCorr integrals = {}".format(actualPPCorr.integrals))
-		print("expPPCorr integrals = {}".format(expPPCorr.integrals))
-#		import pdb
-#		pdb.set_trace()
 		self.assertEqual(expPPCorr, actualPPCorr)
 
+
+
+class TestCoeffsTableConverterPassCoeffs(unittest.TestCase):
+	def setUp(self):
+		integHolder = None
+		integInfoList = [None]
+
+		mockedAnalyticalReprs = [mock.Mock() for x in range(3)]
+		self.nCoeffs = [2,2,1]
+		for x,nCoeff in it.zip_longest(mockedAnalyticalReprs, self.nCoeffs):
+			x.nCoeffs=nCoeff
+
+		coeffVals = [[0,1],[2,3],[4]]
+		self.mergedListCoeffs = [0,1,2,3,4]
+		for x,coeffs in it.zip_longest(mockedAnalyticalReprs,coeffVals):
+			x.coeffs = coeffs
+
+		self.testObj = tCode.CoeffsTablesConverter( mockedAnalyticalReprs, integInfoList, integHolder )
+
+	def testGetCoeffs(self):
+		expCoeffs = self.mergedListCoeffs
+		actCoeffs = self.testObj.coeffs
+		[self.assertEqual(exp,act) for exp,act in it.zip_longest(expCoeffs,actCoeffs)]
+
+	def testSetCoeffs(self):
+		expCoeffs = [9,10,11,12,13]
+		self.testObj.coeffs = expCoeffs
+		actCoeffs = self.testObj.coeffs
+		[self.assertEqual(exp,act) for exp,act in it.zip_longest(expCoeffs,actCoeffs)]
 
 def createIntegTableInfoXaXbPairPot(modelFolder):
 	return tCode.IntegralTableInfo(modelFolder, "pairpot", "Xa", "Xb")
