@@ -1,3 +1,5 @@
 init_planning.odt
 __pycache__/
 *.swp
+build/
+files.txt
