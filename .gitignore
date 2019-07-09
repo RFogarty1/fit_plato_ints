@@ -4,3 +4,4 @@ __pycache__/
 build/
 files.txt
 *.ipynb_checkpoints/
+work_folder/
