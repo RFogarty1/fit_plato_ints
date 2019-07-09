@@ -1,7 +1,6 @@
 
 
 """ Code to actually run the optimisation """
-
 from scipy.optimize import minimize
 
 class ObjectiveFunction:
@@ -12,15 +11,15 @@ class ObjectiveFunction:
 		self.objFunctCalculator = objFunctCalculator
 
 	def __call__(self, coeffs):
-		self.coeffsTableConverter.coeffs = coeffs
-		self.coeffsTableConverter.writeTables()
+		self.coeffTableConverter.coeffs = coeffs
+		self.coeffTableConverter.writeTables()
 		calcValues = self.workFlowCoordinator.runAndGetPropertyValues()
 		objFunctVal = self.objFunctCalculator.calculateObjFunction(calcValues)
 		return objFunctVal
 
 
 #Mainly for initial testing
-def carryOutOptimisationBasicOptions(initCoeffs, ObjectiveFunct):	
-	fitRes = scipy.minimize(ObjectiveFunct, initCoeffs)
+def carryOutOptimisationBasicOptions(ObjectiveFunct):	
+	fitRes = minimize(ObjectiveFunct, ObjectiveFunct.coeffTableConverter.coeffs)
 	return fitRes
 

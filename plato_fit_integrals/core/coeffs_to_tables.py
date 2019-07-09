@@ -88,13 +88,13 @@ class IntegralsHolder():
 		self.integDicts = list( [ {k.lower():v for k,v in x.items()} for x in integDicts ] )
 
 		print("keys are {}".format(self.integDicts[0].keys()))
-	def getIntegTable(self, integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None):
+	def getIntegTable(self, integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None, inclCorrs=True):
 		integStr, dictIdx = self._getIntegStrAndDictIdxForTable(integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None)
 
 		if self._weAreLookingForAtomBasedIntTable(shellA,shellB,axAngMom):
 			intTable = self.integDicts[dictIdx][integStr][0]
 			if _isAtomicIntTable(intTable) and len(self.integDicts[dictIdx][integStr])==1:
-				return copy.deepcopy( _getIntegTableCombinedWithCorr(integStr, self.integDicts[dictIdx], 0) )
+				return copy.deepcopy( _getIntegTableCombinedWithCorr(integStr, self.integDicts[dictIdx], 0, inclCorrs) )
 			else:
 				raise ValueError("shellA/shellB/axAngMom not set despite search for orbital based integrals {}".format(integStr))
 		else:
@@ -133,14 +133,17 @@ def _isAtomicIntTable(intTable):
 		return False
 
 
-def _getIntegTableCombinedWithCorr(integStr, integDict, integIdx):
+def _getIntegTableCombinedWithCorr(integStr, integDict, integIdx, inclCorr=True):
 
 	corrTable = None
 	startTable = integDict[integStr][integIdx]
 	if integStr == "pairpot":
-		corrTable = integDict["PairPotCorrection0".lower()][integIdx] #integIdx shouldnt really be needed (only 1 table per dict per pairpot)
+		if integDict["PairPotCorrection0".lower()] is not None:
+			corrTable = integDict["PairPotCorrection0".lower()][integIdx] #integIdx shouldnt really be needed (only 1 table per dict per pairpot)
+		else:
+			corrTable = None
 
-	if corrTable is not None:
+	if corrTable is not None and inclCorr:
 		return parseTbint.comboSimilarIntegrals(startTable, corrTable)
 	else:
 		return startTable
@@ -148,11 +151,13 @@ def _getIntegTableCombinedWithCorr(integStr, integDict, integIdx):
 def _setIntegTable(intTable, integDict, integStr, integIdx):
 	toSetKey = integStr	
 	toSetTable = intTable
-	print("integStr = {}".format(integStr))
+
 	if integStr == "pairpot":
 		toSetKey = "PairPotCorrection0".lower()
 		toSetTable = parseTbint.getIntegralsAMinusBIfTheyAreSimilarIntegrals(intTable, integDict[integStr][0])
 
-	integDict[toSetKey][integIdx] = toSetTable
-
-
+	if integDict[toSetKey] is not None:
+		integDict[toSetKey][integIdx] = toSetTable
+	else:
+		integDict[toSetKey] = [None for x in integDict[integStr]] #Handle case where ppCorr not present in initial file
+		integDict[toSetKey][integIdx] = toSetTable

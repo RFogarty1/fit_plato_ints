@@ -8,7 +8,7 @@ class WorkFlowCoordinator():
 
 	def runAndGetPropertyValues(self):
 		self.run()
-		return self.propertyValues()
+		return self.propertyValues
 
 	def run(self):
 		for x in self._workFlows:
@@ -77,14 +77,17 @@ class WorkFlowBase():
 	@property
 	def preRunShellComms(self):
 		""" List of string commands that will get run before run() is called. Higher-level functions can therefore 
-		    combine these for a set of WorkFlows, which should lead to more efficient parralelisation. Return None or
-		    empty list to not run any of these commands.
+		combine these for a set of WorkFlows, which should lead to more efficient parralelisation. Return None or
+		empty list to not run any of these commands.
 		
 		"""
 		return None
 
 	@property
 	def namespaceAttrs(self):
+		""" List of attribute names for the properties this workspace calculates + places in a Namespace. See run()
+		
+		"""
 		raise NotImplementedError()
 
 	@property
@@ -92,11 +95,9 @@ class WorkFlowBase():
 		raise NotImplementedError()
 
 	def run(self):
-		""" Runs the workflow and returns a Namespace
-		    with the calculated properties as fields
+		""" Runs the workflow and populates the output attr wtih a Namespace
+		containing calculated properties/values as fields/values. Field names should match those in namespaceAttrs
 				
-		Returns
-			Namespace containing all fields defined in namespaceAttrs. MUST be lower case
 		
 		"""
 		raise NotImplementedError()

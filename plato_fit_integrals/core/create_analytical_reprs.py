@@ -62,24 +62,28 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		self.nodePositions = list(nodePositions) if nodePositions is not None else []
 
 
-	#TODO: Will need a try/except on the scale factors to catch overflows
 	def evalAtListOfXVals(self,xVals):
 		outArray = np.zeros( (len(xVals)) )
 		nodeDenominators = [self.refR0 - nodePos for nodePos in self.nodePositions]
 		for idx,x in enumerate(xVals):
 			if x >= self.rCut:
 				outArray[idx] = 0.0
-			diffVal = x-self.refR0
-
-			#Calc node factor
-			nodeFactor = 1.0
-			for nodePos,nodeDenom in it.zip_longest(self.nodePositions, nodeDenominators):
-				nodeFactor *= ( (x-nodePos) / (nodeDenom) )
-
-			expTerm = sum([(diffVal**(expIdx+1))*x for expIdx,x in enumerate(self.coeffs)]) + (self.tailDelta/(x-self.rCut))
-			scaleFactor = math.exp(expTerm)
-			outArray[idx] = self.valAtR0*scaleFactor*nodeFactor
+			else:
+				diffVal = x-self.refR0
+	
+				#Calc node factor
+				nodeFactor = 1.0
+				for nodePos,nodeDenom in it.zip_longest(self.nodePositions, nodeDenominators):
+					nodeFactor *= ( (x-nodePos) / (nodeDenom) )
+	
+				try:	
+					expTerm = sum([(diffVal**(expIdx+1))*x for expIdx,x in enumerate(self.coeffs)]) + (self.tailDelta/(x-self.rCut))
+					scaleFactor = math.exp(expTerm)
+					outArray[idx] = self.valAtR0*scaleFactor*nodeFactor
+				except OverflowError:
+					outArray[idx] = 1e30
 		return outArray
+
 
 
 	@property
