@@ -92,12 +92,20 @@ def useCalcValAsObjFunct():
 
 
 
-def find_crossings(x,y):
-    """function thet finds positions of the nodes along x axis using linear interpolation between sign changes"""
-    zero_crossings = np.where(np.diff(np.signbit(y[:-1])))[0]
-    finterp=interp1d(x, y, kind='linear')
-    x_nodes= list()
-    for cross in zero_crossings:
-        x_nodes.append(brentq(finterp,x[cross],x[cross+1]))
-    return x_nodes
+def findCrossings(inpArray):
+	"""function thet finds positions of the nodes along x axis using linear interpolation between sign changes"""
+	x,y = inpArray[:,0], inpArray[:,1]
+	zero_crossings = np.where(np.diff(np.signbit(y[:-1])))[0]
+	finterp=interp1d(x, y, kind='linear')
+	x_nodes= list()
+	for cross in zero_crossings:
+		x_nodes.append(brentq(finterp,x[cross],x[cross+1]))
+	return x_nodes
+
+
+def getInterpYValGivenXValandInpData(xVal, inpData):
+	finterp = interp1d(inpData[:,0],inpData[:,1])
+	return finterp(xVal)
+
+
 
