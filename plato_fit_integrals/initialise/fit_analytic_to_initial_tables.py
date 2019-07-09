@@ -12,6 +12,8 @@ import plato_fit_integrals.core.workflow_coordinator as wFlow
 import plato_fit_integrals.core.opt_runner as runOpts
 import plato_fit_integrals.core.obj_funct_calculator as objFunctCalc
 
+import plato_fit_integrals.initialise.obj_functs_targ_vals as objFuncts
+
 def fitAnalyticFormToStartIntegrals( coeffTableConverter, intIdx=0):
 	""" Fits the required analytical form directly to a set of tabulated integrals
 	
@@ -51,8 +53,9 @@ def _createWorkflowCompareTwoSetsTabulatedIntegrals( coeffTableConverter, intIdx
 
 
 def _createObjFunctionCalculator():
-	blankTargVal = 0 #We effectively calculate the objective function within the workflow, so are basically mocking out the objFuncttion calculator
-	propsWithObjFunct = SimpleNamespace( **{"rmsd":(blankTargVal,useCalcValAsObjFunct())} )
+	targVal = 0
+	blankObjFunct = objFuncts.createSimpleTargValObjFunction("blank") #We effectively calculate the objective function within the workflow, so are basically mocking out the objFuncttion calculator
+	propsWithObjFunct = SimpleNamespace( **{"rmsd":(targVal,blankObjFunct)} )
 	objFunctCalculator = objFunctCalc.ObjectiveFunctionContrib(propsWithObjFunct)
 	return objFunctCalculator
 
@@ -81,15 +84,6 @@ class WorkFlowCompareIntegralTableToReference(wFlow.WorkFlowBase):
 			diffArray[x] *= diffArray[x]
 
 		self.output = SimpleNamespace(rmsd=sum(diffArray)/diffArray.shape[0])
-
-
-
-
-def useCalcValAsObjFunct():
-    def objFunct(targ,val):
-        return val
-    return objFunct
-
 
 
 def findCrossings(inpArray):

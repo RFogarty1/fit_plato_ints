@@ -32,21 +32,24 @@ def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRe
 	Raises:
 		KeyError: If functTypeStr is not a valid key for an objective function
 	"""
-	return OBJ_FUNCT_DICT[functTypeStr.lower()](catchOverflow=catchOverflow, errorRetVal=errorRetVal)
+
+	basicObjFunct = OBJ_FUNCT_DICT[functTypeStr.lower()]()
+	if catchOverflow:
+		basicObjFunct = catchOverflowDecorator(basicObjFunct, errorRetVal)
+	return basicObjFunct
 
 
 @registerObjFunctTargVals("msd")
-def _createMsdFunct(catchOverflow=True,errorRetVal=1e30):
+def _createMsdFunct():
 	def Msd(valA,valB):
 		return (valA-valB)**2
-
-	if catchOverflow:
-		return catchOverflowDecorator(Msd, errorRetVal)
-
 	return Msd
 
 
-
-
+@registerObjFunctTargVals("blank")
+def _createBlankObjFunct():
+	def blankObjFunct(targVal,actVal):
+		return actVal
+	return blankObjFunct
 
 
