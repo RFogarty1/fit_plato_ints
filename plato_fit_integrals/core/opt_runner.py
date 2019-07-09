@@ -1,6 +1,7 @@
 
 
 """ Code to actually run the optimisation """
+from types import SimpleNamespace
 from scipy.optimize import minimize
 
 class ObjectiveFunction:
@@ -18,8 +19,10 @@ class ObjectiveFunction:
 		return objFunctVal
 
 
+
 #Mainly for initial testing
-def carryOutOptimisationBasicOptions(ObjectiveFunct):	
-	fitRes = minimize(ObjectiveFunct, ObjectiveFunct.coeffTableConverter.coeffs)
-	return fitRes
+def carryOutOptimisationBasicOptions(objectiveFunct):	
+	fitRes = minimize(objectiveFunct, objectiveFunct.coeffTableConverter.coeffs)
+	output = SimpleNamespace(optRes=fitRes, calcVals=objectiveFunct.workFlowCoordinator.propertyValues )
+	return output
 
