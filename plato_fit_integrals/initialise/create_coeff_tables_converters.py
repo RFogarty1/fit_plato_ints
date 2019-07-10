@@ -5,6 +5,9 @@ import plato_pylib.plato.parse_tbint_files as parseTbint
 
 import plato_fit_integrals.core.coeffs_to_tables as coeffTableConv
 
+
+#Creating integral holders
+
 def createIntegHolderFromModelFolderPath(modelFolderPath):
 	allBdtPaths = _getAllBdtPathsInAFolder(modelFolderPath)
 	atomPairNames = _getAtomPairNamesFromBdtPaths(allBdtPaths)
@@ -33,3 +36,26 @@ def _getAllIntegDictsFromBdtPaths(allPaths):
 	for currPath in allPaths:
 		allIntegDicts.append( parseTbint.getIntegralsFromBdt(currPath) )
 	return allIntegDicts
+
+
+
+#Creating integral info structs
+def getAllIntInfoObjsFromIntegStrAndBdtPath(integStr:"str, e.g. hopping" , bdtPath):
+	integDict = parseTbint.getIntegralsFromBdt(bdtPath)
+	relevantInts = integDict[integStr]
+	modelFolder = os.path.split(bdtPath)[0]
+	outputObjs = list()
+	for x in relevantInts:
+		currObj = coeffTableConv.IntegralTableInfo(modelFolder, integStr, x.atomAName, x.atomBName, x.shellA, x.shellB, x.orbSubIdx)
+		outputObjs.append(currObj)
+
+	#Need to filter out axAngMom = 1 (default in parseTbint) for atom-based integrals
+	for x in outputObjs:
+		if (x.shellA is None):
+			x.axAngMom = None
+
+	return outputObjs
+
+
+
+

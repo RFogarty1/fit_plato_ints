@@ -79,6 +79,8 @@ class IntegralTableInfo():
 		bdtName = "{}_{}.bdt".format(self.atomA,self.atomB)
 		return os.path.abspath( os.path.join(self._modelFolder,bdtName) ) 
 
+	def __eq__(self, other):
+		return self.__dict__ == other.__dict__
 
 
 class IntegralsHolder():
@@ -87,7 +89,7 @@ class IntegralsHolder():
 		self.atomPairNames = [tuple(x) for x in atomPairNames]
 		self.integDicts = list( [ {k.lower():v for k,v in x.items()} for x in integDicts ] )
 
-		print("keys are {}".format(self.integDicts[0].keys()))
+
 	def getIntegTable(self, integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None, inclCorrs=True):
 		integStr, dictIdx = self._getIntegStrAndDictIdxForTable(integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None)
 
