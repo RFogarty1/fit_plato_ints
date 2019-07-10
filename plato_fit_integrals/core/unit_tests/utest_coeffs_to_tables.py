@@ -32,6 +32,14 @@ class TestIntegralHolder(unittest.TestCase):
 		self.assertEqual( self.expGetPairPot, actIntegObj )
 
 
+	def testGetterFromIntegTableInfoPairPot_singleFile(self):
+		mockModFolder = "something"
+		atomA, atomB, integStr = "Mg", "Mg", "PAirPOt"
+		integInfoTable = tCode.IntegralTableInfo(mockModFolder, integStr, atomA, atomB)
+		actIntegObj = self.testObjA.getIntegTableFromInfoObj(integInfoTable)
+		self.assertEqual( self.expGetPairPot, actIntegObj )
+
+
 	def testSetterForPairPot_singleFile(self):
 		atomA, atomB, integStr = "Mg", "Mg", "Pairpot"
 		testSetTable = copy.deepcopy(self.integDicts[0]["pairpot"][0])
@@ -54,6 +62,13 @@ class TestIntegralHolder(unittest.TestCase):
 		actIntegObj = self.testObjA.getIntegTable(integStr, atomA, atomB, shellA, shellB, axAngMom)
 		self.assertEqual( self.expGetHopPpPi , actIntegObj)
 
+	def testGetterFromIntegTableInfoHopInts_singleFile(self):
+		atomA, atomB, integStr = "Mg", "Mg", "hopping"
+		shellA, shellB, axAngMom = 1,1,2 #pp pi
+		mockFolder = "something"
+		integInfoTable = tCode.IntegralTableInfo(mockFolder, integStr, atomA, atomB, shellA, shellB, axAngMom)
+		actIntegObj = self.testObjA.getIntegTableFromInfoObj(integInfoTable)
+		self.assertEqual( self.expGetHopPpPi, actIntegObj )
 
 
 	def testSetterForHopInts_singleFile(self):

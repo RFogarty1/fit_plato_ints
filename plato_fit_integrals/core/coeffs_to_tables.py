@@ -90,6 +90,11 @@ class IntegralsHolder():
 		self.integDicts = list( [ {k.lower():v for k,v in x.items()} for x in integDicts ] )
 
 
+	def getIntegTableFromInfoObj(self, integInfo, inclCorrs=True):
+		integStr, atomA, atomB = integInfo.integStr, integInfo.atomA, integInfo.atomB
+		shellA, shellB, axAngMom = integInfo.shellA, integInfo.shellB, integInfo.axAngMom
+		return self.getIntegTable(integStr, atomA, atomB, shellA, shellB, axAngMom, inclCorrs)
+
 	def getIntegTable(self, integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None, inclCorrs=True):
 		integStr, dictIdx = self._getIntegStrAndDictIdxForTable(integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None)
 
