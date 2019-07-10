@@ -69,9 +69,9 @@ class IntegralTableInfo():
 		self.integStr = integStr.lower()
 		self.atomA = atomA
 		self.atomB = atomB
-		self.shellA = None
-		self.shellB = None
-		self.axAngMom = None
+		self.shellA = shellA
+		self.shellB = shellB
+		self.axAngMom = axAngMom
 		self._modelFolder = os.path.abspath(modelFolder)
 
 	@property
@@ -84,7 +84,7 @@ class IntegralTableInfo():
 class IntegralsHolder():
 
 	def __init__(self, atomPairNames:"iter of 2-tuples", integDicts: "list of dicts containing integrals"):
-		self.atomPairNames = list(atomPairNames)
+		self.atomPairNames = [tuple(x) for x in atomPairNames]
 		self.integDicts = list( [ {k.lower():v for k,v in x.items()} for x in integDicts ] )
 
 		print("keys are {}".format(self.integDicts[0].keys()))
@@ -98,16 +98,21 @@ class IntegralsHolder():
 			else:
 				raise ValueError("shellA/shellB/axAngMom not set despite search for orbital based integrals {}".format(integStr))
 		else:
-			raise NotImplementedError("Not implemented getIntegTable for orbital-based integrals yet, sorry") 
+			integIdx = parseTbint._getIdxOfOrbBasedIntInList(shellA,shellB,axAngMom, self.integDicts[dictIdx][integStr])
+			if integIdx is not None:
+				return copy.deepcopy( _getIntegTableCombinedWithCorr(integStr, self.integDicts[dictIdx], integIdx, inclCorrs) )
+			else:
+				raise ValueError("Invalid integral requested")
+
 
 	def setIntegTable(self, newTable, integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None):
-		integStr, dictIdx = self._getIntegStrAndDictIdxForTable(integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None)
+		integStr, dictIdx = self._getIntegStrAndDictIdxForTable(integStr, atomA, atomB, shellA, shellB, axAngMom)
 		if self._weAreLookingForAtomBasedIntTable(shellA,shellB,axAngMom):
 			integIdx = 0
-			_setIntegTable(newTable, self.integDicts[dictIdx], integStr, integIdx)
 		else:
-			raise NotImplementedError("Not implemented getIntegTable for orbital-based integrals yet, sorry") 
+			integIdx = parseTbint._getIdxOfOrbBasedIntInList(shellA,shellB,axAngMom, self.integDicts[dictIdx][integStr])
 
+		_setIntegTable(newTable, self.integDicts[dictIdx], integStr, integIdx)
 
 	def getAllIntegsTwoAtoms(self, atomStrA, atomStrB):
 		dictIdx = self.atomPairNames.index( (atomA,atomB) )
@@ -143,6 +148,12 @@ def _getIntegTableCombinedWithCorr(integStr, integDict, integIdx, inclCorr=True)
 		else:
 			corrTable = None
 
+	if integStr == "hopping":
+		if integDict["HopCorrection0".lower()] is not None:
+			corrTable = integDict["HopCorrection0".lower()][integIdx]
+		else:
+			corrTable = None
+
 	if corrTable is not None and inclCorr:
 		return parseTbint.comboSimilarIntegrals(startTable, corrTable)
 	else:
@@ -154,10 +165,23 @@ def _setIntegTable(intTable, integDict, integStr, integIdx):
 
 	if integStr == "pairpot":
 		toSetKey = "PairPotCorrection0".lower()
-		toSetTable = parseTbint.getIntegralsAMinusBIfTheyAreSimilarIntegrals(intTable, integDict[integStr][0])
+		toSetTable = parseTbint.getIntegralsAMinusBIfTheyAreSimilarIntegrals(intTable, integDict[integStr][integIdx])
+	elif integStr == "hopping":
+		toSetKey = "HopCorrection0".lower()
+		toSetTable = parseTbint.getIntegralsAMinusBIfTheyAreSimilarIntegrals(intTable, integDict[integStr][integIdx])
 
 	if integDict[toSetKey] is not None:
 		integDict[toSetKey][integIdx] = toSetTable
 	else:
-		integDict[toSetKey] = [None for x in integDict[integStr]] #Handle case where ppCorr not present in initial file
+		integDict[toSetKey] = _getInitialiseBlankCorrectionInts( integDict[integStr] ) #Handle case where correction not present in initial file
 		integDict[toSetKey][integIdx] = toSetTable
+
+
+def _getInitialiseBlankCorrectionInts(baseIntTableList):
+	outInts = copy.deepcopy(baseIntTableList)
+	for x in outInts:
+		x.integrals[:,1] = 0.0
+	return outInts
+		
+
+

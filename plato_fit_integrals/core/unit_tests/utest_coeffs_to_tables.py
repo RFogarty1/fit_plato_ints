@@ -21,6 +21,10 @@ class TestIntegralHolder(unittest.TestCase):
 		self.expGetPairPot = copy.deepcopy(self.integDicts[0]["pairpot"][0])
 		self.expGetPairPot.integrals[:,1] = [6.224678330, -0.010034643, -0.000000300]
 
+		self.expGetHopPpPi = copy.deepcopy(self.integDicts[0]["hopping"][-1])
+		hopCorrVals = [-0.02, -0.023, -0.000045]
+		for idx in range(len(self.expGetHopPpPi.integrals)):
+			self.expGetHopPpPi.integrals[idx,1] += hopCorrVals[idx]
 
 	def testGetterForPairPotInclCorrection_singleFile(self):
 		atomA, atomB, integStr = "Mg", "Mg", "PAirPOt" #Weird format on integStr since it should be case-insensitive anyway
@@ -44,6 +48,28 @@ class TestIntegralHolder(unittest.TestCase):
 		self.assertEqual(expTablePP, actTablePP)
 		self.assertEqual(testSetTable, self.testObjA.getIntegTable(integStr, atomA, atomB) )
 		
+	def testGetterForHopInts_singleFile(self):
+		atomA, atomB, integStr = "Mg", "Mg", "hopping"
+		shellA, shellB, axAngMom = 1,1,2 #pp pi
+		actIntegObj = self.testObjA.getIntegTable(integStr, atomA, atomB, shellA, shellB, axAngMom)
+		self.assertEqual( self.expGetHopPpPi , actIntegObj)
+
+
+
+	def testSetterForHopInts_singleFile(self):
+		atomA, atomB, integStr = "Mg", "Mg", "hopping"
+		shellA, shellB, axAngMom = 1,1,2 #pp pi
+		testSetTable = copy.deepcopy(self.integDicts[0]["hopping"][-1])
+		testSetTable.integrals[:,1] *= -1 
+
+		#Same logic as pair-pot test. Make sure the hopping integrals unchanged; only the correction integrals should be altered
+		self.testObjA.setIntegTable(testSetTable, integStr, atomA, atomB, shellA, shellB, axAngMom)
+		actHopTableNoCorrs = self.testObjA.integDicts[0]["hopping"][-1]
+		expTableHopNoCorrs = self.integDicts[0]["hopping"][-1]
+		actTableInclCorrs = self.testObjA.getIntegTable(integStr,atomA,atomB,shellA,shellB,axAngMom)
+
+		self.assertEqual(expTableHopNoCorrs, actHopTableNoCorrs) #Making sure we dont modify the hopping integral table(just the corr table)
+		self.assertEqual( testSetTable, actTableInclCorrs ) #Making sure setter/getter consistent
 
 class TestCoeffsTableConverterWriteTables(unittest.TestCase):
 
