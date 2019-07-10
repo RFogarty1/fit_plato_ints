@@ -71,14 +71,16 @@ class _WorkFlowCompareIntsVsRef(wFlow.WorkFlowBase):
 def _createRmsdObjFunct():
 	def rmsdFunct(targInts,actInts):
 		sqrDiffs = list()
+		assert np.all(np.diff(actInts[:,0]) > 0), "x-values must be increasing"
 		for row in targInts:
 			xVal,yVal = row[0],row[1]
-			calcYVal = fitInit.getInterpYValGivenXValandInpData(xVal,actInts)
+			calcYVal = np.interp(xVal, actInts[:,0], actInts[:,1]) #DANGEROUS function; x-vals must be increasing. Much faster than using scipy thoiugh
 			sqrDiffs.append( (yVal-calcYVal)**2 )
 		sumSqrDev = sum(sqrDiffs)
 		rmsd = math.sqrt( sumSqrDev/len(sqrDiffs) )
 		return rmsd
 	return rmsdFunct
+
 
 
 
