@@ -1,5 +1,5 @@
 
-
+import copy
 import functools
 from types import SimpleNamespace
 import numpy as np
@@ -26,6 +26,10 @@ def fitAnalyticFormToStartIntegrals( coeffTableConverter, intIdx=0):
 
 	"""
 
+	#Optimisation Step - we dont need to write the output tables until the end
+	origWriteFunct = copy.deepcopy( coeffTableConverter._writeTables )
+	coeffTableConverter._writeTables = lambda : None
+
 	workFlow = _createWorkflowCompareTwoSetsTabulatedIntegrals(coeffTableConverter, intIdx)
 	workFlowCoordinator = wFlow.WorkFlowCoordinator([workFlow])
 
@@ -33,6 +37,11 @@ def fitAnalyticFormToStartIntegrals( coeffTableConverter, intIdx=0):
 
 	objectiveFunction = runOpts.ObjectiveFunction(coeffTableConverter, workFlowCoordinator, objFunctCalcultor)
 	fitRes = runOpts.carryOutOptimisationBasicOptions(objectiveFunction)
+
+	#Write the tables; this would usually be done automatically at each step as part of the update step
+	coeffTableConverter._writeTables = origWriteFunct
+	coeffTableConverter._writeTables()
+
 	return fitRes
 
 
