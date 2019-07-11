@@ -55,7 +55,8 @@ class TestIntegralHolder(unittest.TestCase):
 
 		self.assertEqual(expTablePP, actTablePP)
 		self.assertEqual(testSetTable, self.testObjA.getIntegTable(integStr, atomA, atomB) )
-		
+	
+	
 	def testGetterForHopInts_singleFile(self):
 		atomA, atomB, integStr = "Mg", "Mg", "hopping"
 		shellA, shellB, axAngMom = 1,1,2 #pp pi
@@ -85,6 +86,26 @@ class TestIntegralHolder(unittest.TestCase):
 
 		self.assertEqual(expTableHopNoCorrs, actHopTableNoCorrs) #Making sure we dont modify the hopping integral table(just the corr table)
 		self.assertEqual( testSetTable, actTableInclCorrs ) #Making sure setter/getter consistent
+
+
+	def testSetterForHopIntsFromIntegInfo_singleFile(self):
+		mockModFolder = "something"
+		atomA, atomB, integStr = "Mg", "Mg", "hopping"
+		shellA, shellB, axAngMom = 1,1,2 #pp pi
+		testSetTable = copy.deepcopy(self.integDicts[0]["hopping"][-1])
+		testIntegInfo = tCode.IntegralTableInfo(mockModFolder, integStr, atomA, atomB, shellA, shellB, axAngMom)
+		testSetTable.integrals[:,1] *= -1 
+
+		#Same logic as pair-pot test. Make sure the hopping integrals unchanged; only the correction integrals should be altered
+		self.testObjA.setIntegTableFromInfoObj(testSetTable,testIntegInfo)
+		actHopTableNoCorrs = self.testObjA.integDicts[0]["hopping"][-1]
+		expTableHopNoCorrs = self.integDicts[0]["hopping"][-1]
+		actTableInclCorrs = self.testObjA.getIntegTable(integStr,atomA,atomB,shellA,shellB,axAngMom)
+
+		self.assertEqual(expTableHopNoCorrs, actHopTableNoCorrs) #Making sure we dont modify the hopping integral table(just the corr table)
+		self.assertEqual( testSetTable, actTableInclCorrs ) #Making sure setter/getter consistent
+
+
 
 class TestCoeffsTableConverterWriteTables(unittest.TestCase):
 

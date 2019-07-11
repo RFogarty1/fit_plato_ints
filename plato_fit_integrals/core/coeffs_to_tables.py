@@ -45,7 +45,7 @@ class CoeffsTablesConverter():
 
 	def _writeTables(self):
 		integDicts = self._integHolder.integDicts
-		filePaths = [x.filePath for x in self._integInfo]
+		filePaths = set([x.filePath for x in self._integInfo]) #Should be 1 filepath per integDicts (they hold ALL the info for one bdt)
 
 		for currDict, currPath in it.zip_longest(integDicts, filePaths):
 			parseTbint.writeBdtFileFormat4(currDict, currPath)
@@ -111,6 +111,10 @@ class IntegralsHolder():
 			else:
 				raise ValueError("Invalid integral requested")
 
+	def setIntegTableFromInfoObj(self, newTable, integInfo):
+		integStr, atomA, atomB = integInfo.integStr, integInfo.atomA, integInfo.atomB
+		shellA, shellB, axAngMom = integInfo.shellA, integInfo.shellB, integInfo.axAngMom
+		self.setIntegTable(newTable, integStr, atomA, atomB, shellA, shellB, axAngMom)
 
 	def setIntegTable(self, newTable, integStr, atomA, atomB, shellA=None, shellB=None, axAngMom=None):
 		integStr, dictIdx = self._getIntegStrAndDictIdxForTable(integStr, atomA, atomB, shellA, shellB, axAngMom)
