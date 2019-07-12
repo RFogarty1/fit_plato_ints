@@ -39,11 +39,11 @@ def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRe
 	return basicObjFunct
 
 
-@registerObjFunctTargVals("msd")
-def _createMsdFunct():
-	def Msd(valA,valB):
+@registerObjFunctTargVals("sqrdev")
+def _createSqrDevFunct():
+	def sqrDev(valA,valB):
 		return (valA-valB)**2
-	return Msd
+	return sqrDev
 
 
 @registerObjFunctTargVals("blank")

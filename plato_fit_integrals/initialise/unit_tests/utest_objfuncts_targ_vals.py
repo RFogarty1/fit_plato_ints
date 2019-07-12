@@ -7,8 +7,8 @@ import plato_fit_integrals.initialise.obj_functs_targ_vals as tCode
 class TestBasicMSDFunction(unittest.TestCase):
 
 	def setUp(self):
-		self.testFunction = tCode.createSimpleTargValObjFunction("MsD") #Weird caps to make sure case-insensitive
-		self.testFunctNoOverflowProt = tCode.createSimpleTargValObjFunction("MSD",catchOverflow=False)
+		self.testFunction = tCode.createSimpleTargValObjFunction("SqRDeV") #Weird caps to make sure case-insensitive
+		self.testFunctNoOverflowProt = tCode.createSimpleTargValObjFunction("SqRDeV",catchOverflow=False)
 
 	def testForSimpleValues(self):
 		testTargVal, testActVal = 5,2
