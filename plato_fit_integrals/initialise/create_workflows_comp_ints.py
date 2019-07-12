@@ -49,7 +49,8 @@ class CreateWorkflowActualIntsVsRef:
 class _WorkFlowCompareIntsVsRef(wFlow.WorkFlowBase):
 
 	def __init__(self, refInts, intGetter, propName, objFunct):
-		self.refInts = refInts
+		self.refInts =  np.array(refInts)
+		self.refInts = self.refInts[refInts[:,0].argsort()]
 		self.intGetter = intGetter
 		self.propName = propName
 		self.objFunct = objFunct
@@ -72,16 +73,35 @@ def _createRmsdObjFunct():
 	def rmsdFunct(targInts,actInts):
 		sqrDiffs = list()
 		assert np.all(np.diff(actInts[:,0]) > 0), "x-values must be increasing"
-		for row in targInts:
+		for idx,row in enumerate(targInts):
+			weightVal = 1.0
 			xVal,yVal = row[0],row[1]
 			calcYVal = np.interp(xVal, actInts[:,0], actInts[:,1]) #DANGEROUS function; x-vals must be increasing. Much faster than using scipy thoiugh
-			sqrDiffs.append( (yVal-calcYVal)**2 )
+			sqrDiffs.append( ((yVal-calcYVal)**2)*weightVal )
 		sumSqrDev = sum(sqrDiffs)
 		rmsd = math.sqrt( sumSqrDev/len(sqrDiffs) )
 		return rmsd
 	return rmsdFunct
 
 
+def _createMaeObjFunct():
+	def maeFunct(targInts,actInts):
+		absDiffs = list()
+		assert np.all(np.diff(actInts[:,0]) > 0), "x-values must be increasing"
+		for row in targInts:
+			xVal,yVal = row[0],row[1]
+			calcYVal = np.interp(xVal, actInts[:,0], actInts[:,1]) #DANGEROUS function; x-vals must be increasing. Much faster than using scipy thoiugh
+			absDiffs.append( abs(yVal-calcYVal) )
+		mae = sum(absDiffs)/len(absDiffs)
+		return mae
+	return maeFunct
 
 
+def _calcDistToNearestWeightsSorted1DimArray(inpData:"sorted,ascending 1-dim array"):
+	outArray = np.array(inpData)
+	outArray[0] = inpData[1]-inpData[0]
+	for rIdx in range(1,outArray.shape[0]-1):
+		outArray[rIdx] = min( abs(inpData[rIdx]-inpData[rIdx-1]),  abs(inpData[rIdx]-inpData[rIdx+1]) )
 
+	outArray[-1] = inpData[-1] - inpData[-2]
+	return outArray
