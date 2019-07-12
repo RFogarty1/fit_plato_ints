@@ -53,8 +53,8 @@ class WorkFlowCoordinator():
 	def _ensureWorkFlowsContainNoDuplicateWorkFolders(self):
 		allWorkFolders = list()
 		for x in self._workFlows:
-			if x.workFolder in allWorkFolders:
-				raise ValueError("Duplicate work folders {} found in different workflows".format(x.WorkFolder))
+			if (x.workFolder in allWorkFolders) and (x.workFolder is not None):
+				raise ValueError("Duplicate work folders {} found in different workflows".format(x.workFolder))
 			else:
 				allWorkFolders.append(x.workFolder)
 
