@@ -48,11 +48,13 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 			raise ValueError("Either nPoly or startCoeffs needs to be set")
 		elif nPoly is None:
 			self.nPoly = len(startCoeffs)
+			self._coeffs = startCoeffs
 		elif startCoeffs is None:
-			self.coeffs = [0.0 for x in range(nPoly)]
+			self._coeffs = [0.0 for x in range(nPoly)]
+			self.nPoly = nPoly
 		else:
 			self.nPoly = nPoly
-			self.coeffs = list(startCoeffs)
+			self._coeffs = list(startCoeffs)
 
 		#Set everything else
 		self.rCut = rCut
@@ -60,6 +62,9 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		self.valAtR0 = valAtR0
 		self.tailDelta = tailDelta
 		self.nodePositions = list(nodePositions) if nodePositions is not None else []
+
+	def __repr__( self ):
+		return str(self.__dict__)
 
 
 	def evalAtListOfXVals(self,xVals):
@@ -77,7 +82,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 					nodeFactor *= ( (x-nodePos) / (nodeDenom) )
 	
 				try:	
-					expTerm = sum([(diffVal**(expIdx+1))*x for expIdx,x in enumerate(self.coeffs)]) + (self.tailDelta/(x-self.rCut))
+					expTerm = sum([(diffVal**(expIdx+1))*x for expIdx,x in enumerate(self._coeffs)]) + (self.tailDelta/(x-self.rCut))
 					scaleFactor = math.exp(expTerm)
 					outArray[idx] = self.valAtR0*scaleFactor*nodeFactor
 				except OverflowError:
@@ -88,5 +93,42 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 
 	@property
 	def nCoeffs(self):
-		return len(self.coeffs)
+		return len(self._coeffs)
+
+	@property
+	def coeffs(self):
+		return self._coeffs
+
+	@coeffs.setter
+	def coeffs(self,val):
+		self._coeffs = val
+
+class Cawkwell17ModTailRepr_nodePosAsVars(Cawkwell17ModTailRepr):
+
+	def __init__(self,*args,**kwargs):
+		super().__init__(*args,**kwargs)
+
+	@classmethod
+	def fromParentInstance(cls, parentObj):
+		return cls( rCut=parentObj.rCut,
+		            refR0=parentObj.refR0,
+		            valAtR0=parentObj.valAtR0,
+		            nPoly=parentObj.nPoly,
+		            startCoeffs = parentObj.coeffs,
+		            tailDelta = parentObj.tailDelta,
+		            nodePositions = parentObj.nodePositions )
+
+
+	@property
+	def coeffs(self):
+		return self._coeffs + self.nodePositions
+
+	@coeffs.setter
+	def coeffs(self,val):
+		self._coeffs = val[:len(self._coeffs)]
+		self.nodePositions = val[len(self._coeffs):]
+
+	@property
+	def nCoeffs(self):
+		return len(self._coeffs) + len(self.nodePositions)
 

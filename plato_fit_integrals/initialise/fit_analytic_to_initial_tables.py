@@ -14,7 +14,7 @@ import plato_fit_integrals.core.obj_funct_calculator as objFunctCalc
 
 import plato_fit_integrals.initialise.obj_functs_targ_vals as objFuncts
 
-def fitAnalyticFormToStartIntegrals( coeffTableConverter, intIdx=0):
+def fitAnalyticFormToStartIntegrals( coeffTableConverter, intIdx=0, method=None):
 	""" Fits the required analytical form directly to a set of tabulated integrals
 	
 	Args:
@@ -36,7 +36,7 @@ def fitAnalyticFormToStartIntegrals( coeffTableConverter, intIdx=0):
 	objFunctCalcultor = _createObjFunctionCalculator()
 
 	objectiveFunction = runOpts.ObjectiveFunction(coeffTableConverter, workFlowCoordinator, objFunctCalcultor)
-	fitRes = runOpts.carryOutOptimisationBasicOptions(objectiveFunction)
+	fitRes = runOpts.carryOutOptimisationBasicOptions(objectiveFunction,method=method)
 
 	#Write the tables; this would usually be done automatically at each step as part of the update step
 	coeffTableConverter._writeTables = origWriteFunct
