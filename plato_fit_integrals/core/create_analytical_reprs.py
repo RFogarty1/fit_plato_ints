@@ -101,7 +101,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 
 	@coeffs.setter
 	def coeffs(self,val):
-		self._coeffs = val
+		self._coeffs = list(val)
 
 class Cawkwell17ModTailRepr_nodePosAsVars(Cawkwell17ModTailRepr):
 
@@ -125,8 +125,8 @@ class Cawkwell17ModTailRepr_nodePosAsVars(Cawkwell17ModTailRepr):
 
 	@coeffs.setter
 	def coeffs(self,val):
-		self._coeffs = val[:len(self._coeffs)]
-		self.nodePositions = val[len(self._coeffs):]
+		self._coeffs = list( val[:len(self._coeffs)] )
+		self.nodePositions = list( val[len(self._coeffs):] )
 
 	@property
 	def nCoeffs(self):

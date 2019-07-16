@@ -21,8 +21,8 @@ class ObjectiveFunction:
 
 
 #Mainly for initial testing
-def carryOutOptimisationBasicOptions(objectiveFunct,method=None):	
-	fitRes = minimize(objectiveFunct, objectiveFunct.coeffTableConverter.coeffs,method=method)
+def carryOutOptimisationBasicOptions(objectiveFunct,method=None, **kwargs):	
+	fitRes = minimize(objectiveFunct, objectiveFunct.coeffTableConverter.coeffs,method=method, **kwargs)
 	output = SimpleNamespace(optRes=fitRes, calcVals=objectiveFunct.workFlowCoordinator.propertyValues )
 	objectiveFunct.coeffs = fitRes.x #These should be the optimised parameters; if i didnt do this then objFunct would only contain the FINAL parameters
 	objectiveFunct.coeffTableConverter.writeTables()

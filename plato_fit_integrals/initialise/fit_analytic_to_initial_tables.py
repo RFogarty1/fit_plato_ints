@@ -28,19 +28,20 @@ def fitAnalyticFormToStartIntegrals( coeffTableConverter, intIdx=0, method=None)
 
 	#Optimisation Step - we dont need to write the output tables until the end
 	origWriteFunct = copy.deepcopy( coeffTableConverter._writeTables )
-	coeffTableConverter._writeTables = lambda : None
+	copiedTableConv = copy.deepcopy( coeffTableConverter )
+	copiedTableConv._writeTables = lambda : None
 
-	workFlow = _createWorkflowCompareTwoSetsTabulatedIntegrals(coeffTableConverter, intIdx)
+	workFlow = _createWorkflowCompareTwoSetsTabulatedIntegrals(copiedTableConv, intIdx)
 	workFlowCoordinator = wFlow.WorkFlowCoordinator([workFlow])
 
 	objFunctCalcultor = _createObjFunctionCalculator()
 
-	objectiveFunction = runOpts.ObjectiveFunction(coeffTableConverter, workFlowCoordinator, objFunctCalcultor)
+	objectiveFunction = runOpts.ObjectiveFunction(copiedTableConv, workFlowCoordinator, objFunctCalcultor)
 	fitRes = runOpts.carryOutOptimisationBasicOptions(objectiveFunction,method=method)
 
 	#Write the tables; this would usually be done automatically at each step as part of the update step
-	coeffTableConverter._writeTables = origWriteFunct
-	coeffTableConverter._writeTables()
+	coeffTableConverter.coeffs = copiedTableConv.coeffs
+	coeffTableConverter.writeTables()
 
 	return fitRes
 
