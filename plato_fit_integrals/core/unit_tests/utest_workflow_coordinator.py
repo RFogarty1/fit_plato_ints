@@ -57,6 +57,7 @@ def createMockWorkFlowA():
 	workFlowA.workFolder = "test_folderA"
 	workFlowA.namespaceAttrs = ["hcp_v0", "fcc_v0"]
 	workFlowA.run = fakeWorkFlowRunMethod(workFlowA, SimpleNamespace(hcp_v0=1, fcc_v0=2))
+	workFlowA.preRunShellComms = None
 	return workFlowA
 
 def createMockWorkFlowB():
@@ -64,6 +65,7 @@ def createMockWorkFlowB():
 	workFlowB.workFolder = "test_folderB"
 	workFlowB.namespaceAttrs = ["bcc_v0"]
 	workFlowB.run = fakeWorkFlowRunMethod(workFlowB, SimpleNamespace(bcc_v0=3))
+	workFlowB.preRunShellComms = None
 	return workFlowB
 
 def fakeWorkFlowRunMethod(workFlowObj,outNamespace):
