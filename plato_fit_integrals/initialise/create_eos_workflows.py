@@ -3,21 +3,27 @@ import os
 
 import contextlib
 import collections
+import copy
 import itertools as it
+import math
 import pathlib
-from types import SimpleNamespace
+from types import SimpleNamespace, MethodType
+
+import numpy as np
 
 import plato_fit_integrals.core.workflow_coordinator as wflowCoord
 import plato_fit_integrals.core.obj_funct_calculator as objFunctCalc
 import plato_fit_integrals.initialise.obj_functs_targ_vals as objCmpFuncts
 
 import plato_pylib.plato.mod_plato_inp_files as modInp
+import plato_pylib.plato.parse_plato_out_files as parsePlatoOut
 import plato_pylib.utils.fit_eos as fitBMod
 import plato_pylib.utils.job_running_functs as jobRun
 
 class CreateEosWorkFlow():
 
-	def __init__(self, structDict, modOptDicts, workFolder, platoCode, varyType="pairPot", eosModel="murnaghan", nCores=1):
+	def __init__(self, structDict, modOptDicts, workFolder, platoCode, varyType="pairPot", eosModel="murnaghan", 
+	             onlyCalcE0=False, nonE0EnergyDict=None):
 		""" Create the EosWorkFlow Factory instance. Follow initiation straight by a call to just get the relevant workflow
 		
 		Args:
@@ -28,7 +34,9 @@ class CreateEosWorkFlow():
 			platoCode: Str representing command used to call the plato code needed
 		    varyType: String denoting which integrals are being fit
 			eosModel: The model to use to fit the equation of state. Passed directly to atomic simulation environment (hence see ase.eos for options)
-			nCores: Number of cores to run on.
+			onlyCalcE0: Optimisation for fitting to pair-pots. If True various run settings that dont affect E0 (e.g. k-points) will be changed for
+			            for speed. These Will Overwrite options from modOptDicts.
+			nonE0EnergyDict: Only needed when using onlyCalcE0=True. Dict with same structure as structDict, with structures replaced with values of energies
 		
 		Raises:
 			Errors
@@ -41,8 +49,20 @@ class CreateEosWorkFlow():
 		self.varyType = varyType
 		self.platoCode = platoCode
 
+		self.nonE0EnergyDict = nonE0EnergyDict
+		self.onlyCalcE0 = onlyCalcE0
 
+	@property
+	def onlyCalcE0(self):
+		return self._onlyCalcE0
 
+	@onlyCalcE0.setter
+	def onlyCalcE0(self,val):
+		if (val is True) and (self.nonE0EnergyDict is None):
+			raise ValueError("onlyCalcE0 cant be used without first setting nonE0EnergyDict")
+		self._onlyCalcE0 = val	
+
+	
 	@property
 	def optDicts(self):
 		outDict = dict()
@@ -50,6 +70,8 @@ class CreateEosWorkFlow():
 			baseDict = {k.lower():v for k,v in modInp.getDefOptDict(self.platoCode).items()}
 			currModDict = {k.lower():v for k,v in self.modOptsDict[key].items()}
 			self._modDictBasedOnCorrType(currModDict)
+			if self.onlyCalcE0:
+				self._modDictForE0Only(currModDict)
 			baseDict.update(currModDict)
 			outDict[key] = baseDict
 		return outDict
@@ -57,27 +79,54 @@ class CreateEosWorkFlow():
 	def _modDictBasedOnCorrType(self,inpDict):
 		if self.varyType.lower() == "pairPot".lower():
 			inpDict["addcorrectingppfrombdt".lower()] = 1
+			if self.platoCode=="dft2":
+				inpDict["e0method"] = 1
+		elif self.varyType.lower() == "hopping".lower():
+			inpDict["addcorrectinghopfrombdt"] = 1
+			if self.platoCode=="dft":
+				raise ValueError("varyType = {} is an invalid option for platoCode={}".format(self.varyType,self.platoCode))
 		else:
 			raise ValueError("varyType = {} is an invalid option".format(self.varyType))
 
+	def _modDictForE0Only(self,inpDict):
+		inpDict["blochstates"] = [1,1,1]
+		if self.platoCode=="dft2":
+			inpDict["xtalxcmethod"] = -1
+			inpDict["hopxcmethod"] = -1
+			inpDict["xtalVnaMethod".lower()] = 1
+			inpDict["hopVnaMethod".lower()] = -1
+			inpDict["xtalVnlMethod".lower()] = 1
+			inpDict["hopVnlMethod".lower()] = -1
 
 	def __call__(self):
-		return EosWorkFlow(self.structDict, self.optDicts, self.workFolder, self.platoCode)
+		if self.onlyCalcE0:
+			outObj = EosWorkFlow(self.structDict, self.optDicts, self.workFolder, self.platoCode,eosFromOutFilesFunct=getEosOneStructWhenE1Known,energiesMinusE0=self.nonE0EnergyDict)
+		else:
+			outObj = EosWorkFlow(self.structDict, self.optDicts, self.workFolder, self.platoCode)
+		return outObj
 
 
 
 class EosWorkFlow(wflowCoord.WorkFlowBase):
 
-	def __init__(self, structDict, runOptsDicts, workFolder, platoCodeStr, eosModel="murnaghan"):
+	def __init__(self, structDict, runOptsDicts, workFolder, platoCodeStr, eosModel="murnaghan", eosFromOutFilesFunct=None, energiesMinusE0=None):
 		self.structDict = collections.OrderedDict(structDict)
 		self.runOptsDicts = runOptsDicts
 		self.platoCodeStr = platoCodeStr
 		self._workFolder = os.path.abspath(workFolder)
 		self._eosModel = eosModel
 
-		self._outVals = ["v0","b0"]
+		self._outVals = ["v0","b0","e0","gof"]
 
 		self.output = SimpleNamespace()
+
+		#This is originally a way to allow us to use ONLY the E0 value from the output files
+		if eosFromOutFilesFunct is None:
+			eosFromOutFilesFunct = standardGetEosOneStruct 
+		self._getEosOneStruct = MethodType(eosFromOutFilesFunct,self)
+
+		self.energiesMinusE0 = energiesMinusE0
+
 		#Only need to create the input files at initiation time
 		pathlib.Path(self.workFolder).mkdir(exist_ok=True,parents=False)
 		self._writeFiles()
@@ -154,16 +203,71 @@ class EosWorkFlow(wflowCoord.WorkFlowBase):
 
 	def run(self):
 		for key in self.structDict.keys():
-			self._setEosOneStruct(key)
+			try:
+				fittedEos = self._getEosOneStruct(key)
+			except RuntimeError or ValueError: #ValueError is called in the case of NaN values appearing in ase somewhere
+				for attr in self.namespaceAttrs:
+					setattr(self.output, attr, np.inf)
+				return None
+			self._setAttrsFromEosModelOneStruct(key,fittedEos)
 
-	def _setEosOneStruct(self,structKey):
-		outFilePaths = [x.replace(".in",".out") for x in self._inpFilePathsDict[structKey]]
-		with contextlib.redirect_stdout(None):
-			fittedEos = fitBMod.getBulkModFromOutFilesAseWrapper(outFilePaths, eosModel=self._eosModel)
+#
+	def _setAttrsFromEosModelOneStruct(self,structKey, fittedEos):
 		setattr(self.output,structKey+"_"+"v0", fittedEos["v0"])
 		setattr(self.output,structKey+"_"+"b0", fittedEos["b0"])
 		setattr(self.output,structKey+"_"+"e0", fittedEos["e0"])
+		gof = getRelRMSDForItersTargVsAct( fittedEos["data"][:,1], fittedEos["fitAtDataPoints".lower()][:,1] )
+		setattr(self.output,structKey+"_"+"gof", gof)
 
+def standardGetEosOneStruct(self:"eos WorkFlow class", structKey):
+	outFilePaths = [x.replace(".in",".out") for x in self._inpFilePathsDict[structKey]]
+	with contextlib.redirect_stdout(None):
+		fittedEos = fitBMod.getBulkModFromOutFilesAseWrapper(outFilePaths, eosModel=self._eosModel)
+	return fittedEos
+
+def getEosOneStructWhenE1Known(self, structKey):
+	outFilePaths = [x.replace(".in",".out") for x in self._inpFilePathsDict[structKey]]
+	parsedFiles = [parsePlatoOut.parsePlatoOutFile(x) for x in outFilePaths]
+	allE0Vals = [x["energies"].e0Coh for x in parsedFiles]
+	allTotalEnergies = [e0+eOther for e0,eOther in it.zip_longest(allE0Vals, self.energiesMinusE0[structKey])] #in Ry
+	allTotalEnergiesPerAtom = [x/parsed["numbAtoms"] for x,parsed in it.zip_longest(allTotalEnergies,parsedFiles)]
+	allVolumes = [x["unitCell"].volume /x["numbAtoms"] for x in parsedFiles] #in bohr units
+	
+	#Do the conversions:
+	bohrCubedToAngCubed = 1*(1/(fitBMod.ANG_TO_BOHR**3))
+	rydToEv = 1/fitBMod.EV_TO_RYD
+	volInAng = [bohrCubedToAngCubed*x for x in allVolumes]
+	energiesInEv = [rydToEv*x for x in allTotalEnergiesPerAtom]
+
+	#Fit, answers are in bohr^3 and eV
+	with contextlib.redirect_stdout(None):
+		fittedEos = fitBMod.getBulkModFromVolsAndEnergies(volInAng, energiesInEv)
+
+	return fittedEos
+
+def calcNonE0EnergyDict(structDict, modOptDicts, workFolder, platoCode, nCores=1,quiet=True,varyType="pairpot"):
+	eosWorkFlow = CreateEosWorkFlow(structDict, modOptDicts, workFolder, platoCode, varyType=varyType) ()#Note this will write the files and create the folder upon initiation
+	inpFilesDict = eosWorkFlow._inpFilePathsDict 
+	runComms = eosWorkFlow.preRunShellComms
+	jobRun.executeRunCommsParralel(runComms, nCores, quiet=quiet)
+
+	outEnergies = copy.deepcopy(inpFilesDict)
+	for key in outEnergies.keys():
+		for idx in range(len(outEnergies[key])):
+			outPath = outEnergies[key][idx].replace(".in",".out")
+			outEnergies[key][idx] = _getNonE0EnergyOneOutFile(outPath)
+	return outEnergies
+
+
+def _getNonE0EnergyOneOutFile(outPath):
+	parsedFile = parsePlatoOut.parsePlatoOutFile(outPath)
+	return parsedFile["energies"].electronicCohesiveE - parsedFile["energies"].e0Coh
+
+def getRelRMSDForItersTargVsAct(iterTarg,iterAct):
+	totVal = 0.0
+	for targ,act in it.zip_longest(iterTarg,iterAct):
+		totVal += math.sqrt( (targ-act)**2 )
+	return totVal/len(iterTarg)
 
 
 def decorateEosWorkFlowWithPrintOutputsEveryNSteps(inpObj,printInterval=5):
@@ -236,7 +340,7 @@ class EosObjFunctCalculator(objFunctCalc.ObjectiveFunctCalculator):
 
 	def addProp(self, structKey, prop:"v0,e0,b0", targVal, weight=1.0, objFunct=None ):
 		if objFunct is None:
-			objFunct = objCmpFuncts.createSimpleTargValObjFunction("sqrDev")
+			objFunct = objCmpFuncts.createSimpleTargValObjFunction("relRootSqrDev".lower())
 
 		self._propList.append(prop)
 		self._structList.append(structKey)

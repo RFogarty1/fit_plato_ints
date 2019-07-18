@@ -17,8 +17,7 @@ class TestCreateEosProperties(unittest.TestCase):
 
 	def setUp(self):
 		self.structVols = [150,200,250]
-		self.structDict = {"hcp":createMockUCellObjListFromVols(self.structVols)}
-		self.modOptDicts = {"hcp": {"dataset":"fake_dataset"} }
+		self.structDict, self.modOptDicts = getReqInpDictsForCreateWorkflowDataSetA()
 		self.workFolder = "fake_folder"
 		platoCode = "dft2"
 		varyType = "pairpot"
@@ -31,7 +30,8 @@ class TestCreateEosProperties(unittest.TestCase):
 		actWorkFlow = self.workFlowA
 		expKeys = sorted(["hcp_" + str(x) for x in ["v0","b0"]])
 		actKeys = sorted(actWorkFlow.namespaceAttrs)
-		[self.assertEqual(exp,act) for exp,act in it.zip_longest(expKeys,actKeys)]
+		for exp in expKeys:
+			self.assertTrue(exp in actKeys)
 
 	def testExpectedPreShellComms(self):
 		workFolder = os.path.abspath(self.workFolder)
@@ -51,6 +51,54 @@ class TestCreateEosProperties(unittest.TestCase):
 			self.assertEqual( expModdedOpts["hcp"][key], fullInpDict[key] )
 
 
+class TestCreateEosWithE1Vals(unittest.TestCase):
+
+	def setUp(self):
+		self.structDict, self.modOptDicts = getReqInpDictsForCreateWorkflowDataSetA()
+		self.modOptDicts["hcp"]["blochstates"] = [3,3,3]
+		self.workFolder, self.platoCode = "fake_folder", "tb1"
+		self.testE1Vals = {"hcp":[2.0]}
+
+	def testRaisesForOnlyCalcE0WithoutEnergyDict(self):
+		with self.assertRaises(ValueError):
+			tCode.CreateEosWorkFlow(self.structDict, self.modOptDicts, self.workFolder, self.platoCode, onlyCalcE0=True)
+
+	def testModOptsCorrectInOutFile(self):
+		platoCode = "dft2"
+		expModdedOptDict = {"blochstates":[1,1,1], 
+		                    "e0method":1,
+		                    "xtalxcmethod":-1,
+		                    "hopxcmethod":-1,
+		                    "xtalVnaMethod".lower():1,
+		                    "hopVnaMethod".lower():-1,
+		                    "xtalVnlMethod".lower():1,
+		                    "hopVNLMethod".lower():-1}
+
+		expModdedOptStrDict = modInp.getStrDictFromOptDict(expModdedOptDict,platoCode)
+
+		testWorkFlow = tCode.CreateEosWorkFlow(self.structDict, self.modOptDicts, self.workFolder, platoCode,
+		                                       onlyCalcE0=True, nonE0EnergyDict=self.testE1Vals)()
+		inpFilePaths = testWorkFlow._inpFilePaths
+		fullInpDict = modInp.tokenizePlatoInpFile(inpFilePaths[0])
+
+		for key in expModdedOptStrDict.keys():
+			self.assertEqual( expModdedOptStrDict[key], fullInpDict[key] )
+		
+
+#class TestGetNonE0EnergyDict(unittest.TestCase):
+#
+#	def setUp(self):
+#		pass
+#
+#	def testSomething(self):
+#		self.assertTrue(False)
+#
+
+def getReqInpDictsForCreateWorkflowDataSetA():
+	structVols = [150,200,250]
+	structDicts = {"hcp":createMockUCellObjListFromVols(structVols)}
+	modOptDicts = {"hcp": {"dataset":"fake_dataset"} }
+	return structDicts, modOptDicts
 
 def createMockUCellObjListFromVols(volList):
 	outObjList = [mock.Mock() for x in volList]
@@ -71,7 +119,7 @@ class TestCreateObjFunct(unittest.TestCase):
 		self.propList = ["v0","b0"]
 		self.structList = ["hcp","hcp"]
 		self.targVals = [0.0 for x in range(len(self.propList))]
-		self.weightList = [1.0 for x in range(len(self.propList))] #TODO:alter this
+		self.weightList = [1.0 for x in range(len(self.propList))] 
 		self.objFunctList = [objCmpFuncts.createSimpleTargValObjFunction("blank") for x in range(len(self.propList))]
 		self.inpLists = [self.propList, self.structList, self.targVals, self.weightList, self.objFunctList]
 		self.testObjA = tCode.EosObjFunctCalculator(self.propList, self.structList, self.targVals,
@@ -93,7 +141,8 @@ class TestCreateObjFunct(unittest.TestCase):
 	def testExpectedProps(self):
 		expProps = ["hcp_v0", "hcp_b0"]
 		actualProps = self.testObjA.props
-		[self.assertEqual(exp,act) for exp,act in it.zip_longest(expProps,actualProps)]
+		for exp in expProps:
+			self.assertTrue( exp in actualProps )
 
 	def testRaisesForDuplicateProperties_initation(self):
 		for currList in self.inpLists:
