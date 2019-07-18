@@ -1,4 +1,5 @@
 
+import math
 
 OBJ_FUNCT_DICT = dict()
 
@@ -52,4 +53,9 @@ def _createBlankObjFunct():
 		return actVal
 	return blankObjFunct
 
-
+@registerObjFunctTargVals("relRootSqrDev".lower())
+def _createRelRootSqrDevFunct():
+	def relRootSqrDevFunct(targVal,actVal):
+		rootSqrDev = math.sqrt( (targVal-actVal)**2 )
+		return rootSqrDev/targVal
+	return relRootSqrDevFunct
