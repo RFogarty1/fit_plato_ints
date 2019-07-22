@@ -30,7 +30,20 @@ class TestBasicMSDFunction(unittest.TestCase):
 		self.assertEqual(expVal,actVal)
 
 
+class TestVectorisedRelSqrDev(unittest.TestCase):
+	
+	def setUp(self):
+		self.functTypeStr = "relRootSqrDev".lower()
+		self.averageMethod = "mean"
 
+
+	def testMeanMethodGivesExpOutput(self):
+		targVals = [1,3,5]
+		inpVals = [2,8,3]
+		expAnswer = 1.0222222
+		objFunct = tCode.createVectorisedTargValObjFunction(self.functTypeStr, averageMethod=self.averageMethod)
+		actAnswer = objFunct(targVals,inpVals)
+		self.assertAlmostEqual(expAnswer, actAnswer)
 
 if __name__ == '__main__':
 	unittest.main()
