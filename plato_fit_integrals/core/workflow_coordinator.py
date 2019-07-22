@@ -80,8 +80,6 @@ def getCombinedNamespaceNoDuplicatedKeys(nSpaceA:"types.SimpleNamespace", nSpace
 	return SimpleNamespace(**dictA)
 
 
-#TODO: May add getPreRunShellCommands - a set of shell cmds that can all be run in parralel before starting
-#      This will let me run plato-jobs from any number of workflows all in parralel[this should be the slow step always]
 class WorkFlowBase():
 
 	@property
@@ -112,4 +110,17 @@ class WorkFlowBase():
 		"""
 		raise NotImplementedError()
 
+
+def decorateWorkFlowWithPrintOutputsEveryNSteps(inpObj,printInterval=5):
+    f = inpObj.run
+    stepNumb = 0
+    def runPlusOutput():
+        nonlocal stepNumb
+        f()
+        if (stepNumb%printInterval)==0:
+            print(inpObj.output)
+        stepNumb += 1
+        return None
+    inpObj.run = runPlusOutput
+    return None
 

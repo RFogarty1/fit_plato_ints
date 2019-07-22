@@ -128,7 +128,7 @@ class EosWorkFlow(wflowCoord.WorkFlowBase):
 		self.energiesMinusE0 = energiesMinusE0
 
 		#Only need to create the input files at initiation time
-		pathlib.Path(self.workFolder).mkdir(exist_ok=True,parents=False)
+		pathlib.Path(self.workFolder).mkdir(exist_ok=True,parents=True)
 		self._writeFiles()
 
 	@property
@@ -271,18 +271,9 @@ def getRelRMSDForItersTargVsAct(iterTarg,iterAct):
 
 
 def decorateEosWorkFlowWithPrintOutputsEveryNSteps(inpObj,printInterval=5):
-    f = inpObj.run
-    stepNumb = 0
-    def runPlusOutput():
-        nonlocal stepNumb
-        f()
-        if (stepNumb%printInterval)==0:
-            print(inpObj.output)
-        stepNumb += 1
-        return None
-    inpObj.run = runPlusOutput
-    return None
-
+	""" For backwards compatability only, just calls wflowCoord.decorateWorkFlowWithPrintOutputsEveryNSteps
+	"""
+	wflowCoord.decorateWorkFlowWithPrintOutputsEveryNSteps(inpObj,printInterval=5)
 
 
 class EosObjFunctCalculator(objFunctCalc.ObjectiveFunctCalculator):
