@@ -14,6 +14,7 @@ import numpy as np
 import plato_fit_integrals.core.workflow_coordinator as wflowCoord
 import plato_fit_integrals.core.obj_funct_calculator as objFunctCalc
 import plato_fit_integrals.initialise.obj_functs_targ_vals as objCmpFuncts
+import plato_fit_integrals.shared.workflow_helpers as wFlowHelpers
 
 import plato_pylib.plato.mod_plato_inp_files as modInp
 import plato_pylib.plato.parse_plato_out_files as parsePlatoOut
@@ -32,7 +33,7 @@ class CreateEosWorkFlow():
 		                 (*.plato.mod_plato_inp_files). Expect to have BlochStates at least in these dicts
 			workFolder: Path to folder to carry out calculations in
 			platoCode: Str representing command used to call the plato code needed
-		    varyType: String denoting which integrals are being fit
+		    varyType: String (case insensitive) denoting which integrals are being fit. Opts={\"pairPot\",\"hopping\",None}
 			eosModel: The model to use to fit the equation of state. Passed directly to atomic simulation environment (hence see ase.eos for options)
 			onlyCalcE0: Optimisation for fitting to pair-pots. If True various run settings that dont affect E0 (e.g. k-points) will be changed for
 			            for speed. These Will Overwrite options from modOptDicts.
@@ -77,16 +78,7 @@ class CreateEosWorkFlow():
 		return outDict
 
 	def _modDictBasedOnCorrType(self,inpDict):
-		if self.varyType.lower() == "pairPot".lower():
-			inpDict["addcorrectingppfrombdt".lower()] = 1
-			if self.platoCode=="dft2":
-				inpDict["e0method"] = 1
-		elif self.varyType.lower() == "hopping".lower():
-			inpDict["addcorrectinghopfrombdt"] = 1
-			if self.platoCode=="dft":
-				raise ValueError("varyType = {} is an invalid option for platoCode={}".format(self.varyType,self.platoCode))
-		else:
-			raise ValueError("varyType = {} is an invalid option".format(self.varyType))
+		wFlowHelpers.modOptDictBasedOnCorrTypeAndPlatoCode(inpDict, self.varyType, self.platoCode)
 
 	def _modDictForE0Only(self,inpDict):
 		inpDict["blochstates"] = [1,1,1]
