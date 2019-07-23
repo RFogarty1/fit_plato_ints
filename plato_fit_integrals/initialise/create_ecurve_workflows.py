@@ -77,7 +77,8 @@ def _getDistTwoVectors(vectA,vectB):
 	return dist
 
 
-def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTypeStr, averageMethod="mean",catchOverflow=True, errorRetVal=1e30, normToErrorRetVal=False):
+def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTypeStr, averageMethod="mean",catchOverflow=True, errorRetVal=1e30,
+ normToErrorRetVal=False, greaterThanIsOk=False):
 	""" Creates an objective function calculator from an input workflow of class StructEnergiesWorkFlow.
 	    Works only because this workflow should only have a single output field.
 	
@@ -103,7 +104,7 @@ def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTyp
 
 
 	attrName = objAttrs[0]
-	cmpFunct = ObjCmpFuncts.createVectorisedTargValObjFunction(functTypeStr, averageMethod=averageMethod, catchOverflow=catchOverflow, errorRetVal=errorRetVal,normToErrorRetVal=normToErrorRetVal)
+	cmpFunct = ObjCmpFuncts.createVectorisedTargValObjFunction(functTypeStr, averageMethod=averageMethod, catchOverflow=catchOverflow, errorRetVal=errorRetVal,normToErrorRetVal=normToErrorRetVal, greaterThanIsOk=greaterThanIsOk)
 
 	objFunct = objFunctCalc.ObjectiveFunctionContrib( SimpleNamespace(**{attrName:(targetVals,cmpFunct)}) ) 
 	return objFunct

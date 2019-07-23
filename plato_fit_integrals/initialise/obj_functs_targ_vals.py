@@ -37,9 +37,17 @@ def applyNormDecorator(funct, maxVal):
 		return outVal
 	return getNormd
 
+def applyGreaterThanIsOkDecorator(funct):
+	def outFunct(targVal,actVal):
+		if actVal > targVal:
+			return 0
+		else:
+			return funct(targVal,actVal)
+	return outFunct
 
-def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",catchOverflow=True, errorRetVal=1e30, normToErrorRetVal=False):
-	baseFunct = createSimpleTargValObjFunction(functTypeStr, catchOverflow=False)
+
+def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",catchOverflow=True, errorRetVal=1e30, normToErrorRetVal=False, greaterThanIsOk=False):
+	baseFunct = createSimpleTargValObjFunction(functTypeStr, catchOverflow=False, greaterThanIsOk=greaterThanIsOk)
 	def vectorizedFunct(targVals,actVals):
 		outVals = list()
 		tVals, aVals = copy.deepcopy(targVals), copy.deepcopy(actVals)
@@ -62,13 +70,15 @@ def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",ca
 
 	return outFunct
 
-def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRetVal=1e30):
+def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRetVal=1e30, greaterThanIsOk=False):
 	""" Creates an objective function that takes input (targetVal, actVal) where both are single numbers
 	
 	Args:
 		functTypeStr: String (Case insensitive) indicating the type of function required. See OBJ_FUNCT_DICT.keys()
 		              for available options
-			
+		catchOverflow: Bool. If set to True then whenever an overflow error occurs then errorRetVal is returned by the function
+		errorRetVal: Return value if a caught error is thrown (only overflows at the time of writing)
+		greaterThanIsOk: Bool, If true then the cmp function is set to zero if actual value>target value.
 	Returns
 		objFunct: Function with interface (targetVal, actVal)->output value.
 	
@@ -77,8 +87,13 @@ def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRe
 	"""
 
 	basicObjFunct = OBJ_FUNCT_DICT[functTypeStr.lower()]()
+
+	if greaterThanIsOk:
+		basicObjFunct = applyGreaterThanIsOkDecorator(basicObjFunct)
+
 	if catchOverflow:
 		basicObjFunct = catchOverflowDecorator(basicObjFunct, errorRetVal)
+
 	return basicObjFunct
 
 

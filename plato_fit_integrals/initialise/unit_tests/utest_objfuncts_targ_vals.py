@@ -45,6 +45,27 @@ class TestVectorisedRelSqrDev(unittest.TestCase):
 		actAnswer = objFunct(targVals,inpVals)
 		self.assertAlmostEqual(expAnswer, actAnswer)
 
+
+class TestVectorisedGreaterThanDecorator(unittest.TestCase):
+
+	def setUp(self):
+		self.functTypeStr = "sqrdev".lower()
+		self.averageMethod = "mean"
+		self.catchOverflow = True
+		self.greaterThanIsOk = True
+		self.targVals = [2,3,0]
+		self.actVals = [1,2,3]
+
+	def runFunct(self):
+		cmpFunct = tCode.createVectorisedTargValObjFunction(self.functTypeStr, greaterThanIsOk=self.greaterThanIsOk, averageMethod=self.averageMethod, catchOverflow=self.catchOverflow)
+		outVal = cmpFunct(self.targVals, self.actVals)
+		return outVal
+
+	def testExpOutputGiven(self):
+		expAnswer = 2/3
+		actAnswer = self.runFunct()
+		self.assertAlmostEqual(expAnswer, actAnswer)
+
 if __name__ == '__main__':
 	unittest.main()
 
