@@ -47,6 +47,8 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		else:
 			self.nPoly = nPoly
 			self._coeffs = list(startCoeffs)
+			if len(self._coeffs) != self.nPoly:
+				raise TypeError("nPoly set to {} but {} startCoeffs passed".format(self.nPoly,len(self._coeffs)))
 
 		#Set everything else
 		self.rCut = rCut
@@ -55,6 +57,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		self.tailDelta = tailDelta
 		self.nodePositions = list(nodePositions) if nodePositions is not None else []
 		self._treatValAtR0AsVariable = False
+		self._treatNodePositionsAsVariables = False
 
 	def __repr__( self ):
 		return str(self.__dict__)
@@ -85,28 +88,44 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 	def promoteValAtR0ToVariable(self):
 		self._treatValAtR0AsVariable = True
 
+	def promoteNodePositionsToVariables(self):
+		self._treatNodePositionsAsVariables = True
+
+	def demoteValAtR0FromVariable(self):
+		self._treatValAtR0AsVariable = False
+
 	@property
 	def nCoeffs(self):
-		numbCoeffs = len(self._coeffs)
+		numbCoeffs = self.nPoly
 		if self._treatValAtR0AsVariable:
 			numbCoeffs += 1
+		if self._treatNodePositionsAsVariables:
+			numbCoeffs += len(self.nodePositions)
 		return numbCoeffs
 
 	@property
 	def coeffs(self):
-		stdCoeffs = list(self._coeffs)
+		outCoeffs = list(self._coeffs)
 		if self._treatValAtR0AsVariable:
-			stdCoeffs = stdCoeffs + [self.valAtR0]
-		return self._coeffs
+			outCoeffs = outCoeffs + [self.valAtR0]
+		if self._treatNodePositionsAsVariables:
+			outCoeffs = outCoeffs + self.nodePositions
+		return outCoeffs
 
 	#TODO: Throw error if wrong number of coefficients passed
 	@coeffs.setter
 	def coeffs(self,val):
-		numbStdCoeffs = len(self._coeffs)
-		self._coeffs = list(val[:numbStdCoeffs])
+		if len(val) != self.nCoeffs:
+			raise TypeError("Expected {} coeffs, but {} passed".format(self.nCoeffs,len(val)))
+
+		self._coeffs = list(val[:self.nPoly])
+		nextListPos = self.nPoly
 		if self._treatValAtR0AsVariable:
-			self.valAtR0 = val[-1]
-		print("self.valAtR0 = {}".format(self.valAtR0))
+			self.valAtR0 = val[nextListPos]
+			nextListPos += 1
+		if self._treatNodePositionsAsVariables:
+			self.nodePositions = list(val[nextListPos:])
+
 
 class Cawkwell17ModTailRepr_nodePosAsVars(Cawkwell17ModTailRepr):
 

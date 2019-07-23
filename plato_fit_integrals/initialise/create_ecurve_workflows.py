@@ -164,7 +164,7 @@ class StructEnergiesWorkFlow(wflowCoord.WorkFlowBase):
 		self.varyType=varyType	   
  
 		#Need to create input files only once, on initiation
-		pathlib.Path(self.workFolder).mkdir(exist_ok=True)
+		pathlib.Path(self.workFolder).mkdir(exist_ok=True,parents=True)
 		self._writeInpFiles()
 		
 	@property

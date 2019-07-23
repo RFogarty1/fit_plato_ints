@@ -34,6 +34,10 @@ class TestCawk17ModTailFunctions(unittest.TestCase):
 		for exp,act in it.zip_longest(expOutVals, actOutVals):
 			self.assertAlmostEqual(exp,act)
 
+	def testErrorThrownIfStartCoeffLengthWrong(self):
+		with self.assertRaises(TypeError):
+			outObj = tCode.Cawkwell17ModTailRepr( rCut=10, refR0=5 , valAtR0=3.2 , nodePositions=None , startCoeffs=[-0.2,-0.1,-0.5], tailDelta=4.0 ,nPoly=2)
+
 
 class TestPromoteCawkValsToVariables(unittest.TestCase):
 
@@ -41,30 +45,65 @@ class TestPromoteCawkValsToVariables(unittest.TestCase):
 		self.rCut = 10
 		self.refR0 = 5
 		self.valAtR0 = 3.2
-		self.nodePositions = None
+		self.nodePositions = [3.5,5.7]
 		self.startCoeffs = [-0.2,-0.1]
-		self.tailDelta = 0.0 #To make maths easier
+		self.tailDelta = 4.0 #To make maths easier
 		self.nPoly = 2
 		self.currCoeffs = list(self.startCoeffs)
-		self.applyDecoTwice = False
 
-		self.testRVals = [0,1,4]
+		self.testRVals = [0, 1, 4, 5, 7, 9]
+
+		self.createTestObj()
 
 	def runFunct(self):
-		testObj = tCode.Cawkwell17ModTailRepr( rCut=self.rCut, refR0=self.refR0 , valAtR0=self.valAtR0 , nodePositions=self.nodePositions ,
+		return self.testObj.evalAtListOfXVals(self.testRVals)
+
+	def createTestObj(self):
+		self.testObj = tCode.Cawkwell17ModTailRepr( rCut=self.rCut, refR0=self.refR0 , valAtR0=self.valAtR0 , nodePositions=self.nodePositions ,
 		                                       startCoeffs=self.startCoeffs, tailDelta=self.tailDelta ,nPoly=self.nPoly)
-		testObj.promoteValAtR0ToVariable()
-		testObj.coeffs = self.currCoeffs
-		return testObj.evalAtListOfXVals(self.testRVals)
+		self.testObj.promoteValAtR0ToVariable()
+		self.testObj.promoteNodePositionsToVariables()
+		self.setCoeffs()
 
+	def setCoeffs(self, inclValAtR0=True):
+		if inclValAtR0:
+			self.testObj.coeffs = self.currCoeffs + [self.valAtR0] + self.nodePositions
+		else:
+			self.testObj.coeffs = self.currCoeffs + self.nodePositions
 
-	def testExpValSimpleCase(self):
-		self.currCoeffs.append(self.valAtR0+1.0)
-		expVals = [0.9371466726, 1.8871816493, 4.6417178559]
+	def testCoeffSetterSimpleCase(self):
+		self.nodePositions = [0.2,0.4]
+		self.valAtR0 = 5.0
+		self.setCoeffs()
+		self.assertEqual(self.valAtR0,self.testObj.valAtR0)
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(self.nodePositions,self.testObj.nodePositions)] #TODO: Make nodePositions private
+
+	def testExpValSimpleCaseForValAtR0(self):
+		self.valAtR0 = self.valAtR0 + 1.0
+		self.setCoeffs()
+		expVals = [-11.935575814, -13.540743228, 1.9292064739, 1.8871816493, -2.1556412881, -0.120629058]
 		actVals = self.runFunct()
 		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expVals,actVals)]
 
+	def testModdingNodePositionsWorksIfValAtR0Demoted(self):
+		self.testObj.demoteValAtR0FromVariable()
+		self.nodePositions = [4.0,5.9]
+		self.setCoeffs(inclValAtR0=False)
+		expVals = [-12.5504690263, -15.0580747387, 0, 1.4378526852, -1.3897174604, -0.0915702675]
+		actVals = self.runFunct()
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expVals,actVals)]
 
+	def testModifyingNodePositionsGivesExpVal(self):
+		self.nodePositions = [4.0,5.9]
+		self.setCoeffs()
+		expVals = [-12.5504690263, -15.0580747387, 0, 1.4378526852, -1.3897174604, -0.0915702675]
+		actVals = self.runFunct()
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expVals,actVals)]
+
+	def testRaisesIfSettingWrongNumberOfCoeffs(self):
+		self.testObj.demoteValAtR0FromVariable()
+		with self.assertRaises(TypeError): #We're now passing the wrong number of arguments (its pretty feasible this could happen)
+			self.setCoeffs()
 
 if __name__ == '__main__':
 	unittest.main()
