@@ -126,33 +126,3 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		if self._treatNodePositionsAsVariables:
 			self.nodePositions = list(val[nextListPos:])
 
-
-class Cawkwell17ModTailRepr_nodePosAsVars(Cawkwell17ModTailRepr):
-
-	def __init__(self,*args,**kwargs):
-		super().__init__(*args,**kwargs)
-
-	@classmethod
-	def fromParentInstance(cls, parentObj):
-		return cls( rCut=parentObj.rCut,
-		            refR0=parentObj.refR0,
-		            valAtR0=parentObj.valAtR0,
-		            nPoly=parentObj.nPoly,
-		            startCoeffs = parentObj.coeffs,
-		            tailDelta = parentObj.tailDelta,
-		            nodePositions = parentObj.nodePositions )
-
-
-	@property
-	def coeffs(self):
-		return self._coeffs + self.nodePositions
-
-	@coeffs.setter
-	def coeffs(self,val):
-		self._coeffs = list( val[:len(self._coeffs)] )
-		self.nodePositions = list( val[len(self._coeffs):] )
-
-	@property
-	def nCoeffs(self):
-		return len(self._coeffs) + len(self.nodePositions)
-
