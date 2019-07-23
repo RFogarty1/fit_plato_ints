@@ -24,22 +24,14 @@ class AnalyticalIntRepr():
 	def nCoeffs(self):
 		raise NotImplementedError("nCoeffs property getter not implemented on child class")
 
+
+
 class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 
 	def __init__( self, rCut:float=None, refR0:float=None, valAtR0:float=None,
                  nPoly:int=None, startCoeffs:list=None, tailDelta=None,
 	             nodePositions=None ):
-		""" Description of function
-		
-		Args:
-			Param1:
-				
-		Returns
-			What Function Returns
-		
-		Raises:
-			Errors
-		"""
+
 		if None in [rCut, refR0, valAtR0, tailDelta]:
 			raise ValueError("Missing parameter when creating Cawkwell17ModTailRepr Object")
 
@@ -62,6 +54,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 		self.valAtR0 = valAtR0
 		self.tailDelta = tailDelta
 		self.nodePositions = list(nodePositions) if nodePositions is not None else []
+		self._treatValAtR0AsVariable = False
 
 	def __repr__( self ):
 		return str(self.__dict__)
@@ -89,19 +82,31 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 					outArray[idx] = 1e30
 		return outArray
 
-
+	def promoteValAtR0ToVariable(self):
+		self._treatValAtR0AsVariable = True
 
 	@property
 	def nCoeffs(self):
-		return len(self._coeffs)
+		numbCoeffs = len(self._coeffs)
+		if self._treatValAtR0AsVariable:
+			numbCoeffs += 1
+		return numbCoeffs
 
 	@property
 	def coeffs(self):
+		stdCoeffs = list(self._coeffs)
+		if self._treatValAtR0AsVariable:
+			stdCoeffs = stdCoeffs + [self.valAtR0]
 		return self._coeffs
 
+	#TODO: Throw error if wrong number of coefficients passed
 	@coeffs.setter
 	def coeffs(self,val):
-		self._coeffs = list(val)
+		numbStdCoeffs = len(self._coeffs)
+		self._coeffs = list(val[:numbStdCoeffs])
+		if self._treatValAtR0AsVariable:
+			self.valAtR0 = val[-1]
+		print("self.valAtR0 = {}".format(self.valAtR0))
 
 class Cawkwell17ModTailRepr_nodePosAsVars(Cawkwell17ModTailRepr):
 
