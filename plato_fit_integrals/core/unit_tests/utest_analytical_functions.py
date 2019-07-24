@@ -105,6 +105,48 @@ class TestPromoteCawkValsToVariables(unittest.TestCase):
 		with self.assertRaises(TypeError): #We're now passing the wrong number of arguments (its pretty feasible this could happen)
 			self.setCoeffs()
 
+
+
+class TestExpDecayFunct(unittest.TestCase):
+
+	def setUp(self):
+		self.prefactor = 5
+		self.alpha = -2.4
+		self.r0 = 1.0
+		self.testXVals = [0,1,2]
+
+	def runFunct(self):
+		outVals = self.testObj.evalAtListOfXVals(self.testXVals)
+		return outVals
+
+	def createObj(self):
+		self.testObj = tCode.ExpDecayFunct(r0=self.r0,prefactor=self.prefactor,alpha=self.alpha)		
+	def testExpValsForSimpleInputs(self):
+		self.createObj()
+		actVals = self.runFunct()
+		expVals = [1586.7416445893, 5, 0.015755558]
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expVals,actVals)]
+
+	def testNCoeffsCorrectDefaultBuild(self):
+		self.createObj()
+		actNumbCoeffs = self.testObj.nCoeffs
+		expNumbCoeffs = 2 #prefactor and alpha value should be coeffs
+		self.assertEqual(expNumbCoeffs,actNumbCoeffs)
+
+	def testExpCoeffsReturned(self):
+		self.createObj()
+		expCoeffs = [self.prefactor,self.alpha]
+		actCoeffs = self.testObj.coeffs
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expCoeffs,actCoeffs)]
+
+	def testExpCoeffsSet(self):
+		newPrefactor,newAlpha = 0.5,2.5
+		self.createObj()
+		self.testObj.coeffs = [newPrefactor, newAlpha]
+		self.assertAlmostEqual(newPrefactor, self.testObj._prefactor)
+		self.assertAlmostEqual(newAlpha, self.testObj._alpha)
+
+
 if __name__ == '__main__':
 	unittest.main()
 

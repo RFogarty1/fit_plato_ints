@@ -112,7 +112,6 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 			outCoeffs = outCoeffs + self.nodePositions
 		return outCoeffs
 
-	#TODO: Throw error if wrong number of coefficients passed
 	@coeffs.setter
 	def coeffs(self,val):
 		if len(val) != self.nCoeffs:
@@ -125,4 +124,41 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 			nextListPos += 1
 		if self._treatNodePositionsAsVariables:
 			self.nodePositions = list(val[nextListPos:])
+
+
+
+
+class ExpDecayFunct(AnalyticalIntRepr):
+	def __init__(self, r0=None,alpha=None,prefactor=None):
+		reqArgs = [r0,alpha,prefactor]
+		if None in reqArgs:
+			raise TypeError("Missing parameter when creating ExpDecayFunct")
+
+		self.r0 = r0
+		self._alpha = alpha
+		self._prefactor = prefactor
+
+	def evalAtListOfXVals(self,xVals:iter):
+		outArray = np.zeros( (len(xVals)) )
+		alphaSqr = self._alpha*self._alpha
+		for idx,x in enumerate(xVals):
+			rDist = x - self.r0
+			outArray[idx] = self._prefactor * math.exp( (-1*alphaSqr*rDist) )
+
+		return outArray
+
+	@property
+	def nCoeffs(self):
+		return len(self.coeffs)
+
+	@property
+	def coeffs(self):
+		return [self._prefactor,self._alpha]
+
+	@coeffs.setter
+	def coeffs(self,val):
+		if len(val) != self.nCoeffs:
+			raise TypeError("Expected {} coeffs, but {} passed".format(self.nCoeffs,len(val)))
+		self._prefactor = val[0]
+		self._alpha = val[1]
 
