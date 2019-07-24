@@ -66,6 +66,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 	def evalAtListOfXVals(self,xVals):
 		outArray = np.zeros( (len(xVals)) )
 		nodeDenominators = [self.refR0 - nodePos for nodePos in self.nodePositions]
+		tailArray = applyTailFunctToListOfXVals(xVals, self.rCut, self.tailDelta)
 		for idx,x in enumerate(xVals):
 			if x >= self.rCut:
 				outArray[idx] = 0.0
@@ -78,9 +79,9 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 					nodeFactor *= ( (x-nodePos) / (nodeDenom) )
 	
 				try:	
-					expTerm = sum([(diffVal**(expIdx+1))*x for expIdx,x in enumerate(self._coeffs)]) + (self.tailDelta/(x-self.rCut))
+					expTerm = sum([(diffVal**(expIdx+1))*x for expIdx,x in enumerate(self._coeffs)])
 					scaleFactor = math.exp(expTerm)
-					outArray[idx] = self.valAtR0*scaleFactor*nodeFactor
+					outArray[idx] = self.valAtR0*scaleFactor*nodeFactor*tailArray[idx]
 				except OverflowError:
 					outArray[idx] = 1e30
 		return outArray
@@ -129,7 +130,7 @@ class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 
 
 class ExpDecayFunct(AnalyticalIntRepr):
-	def __init__(self, r0=None,alpha=None,prefactor=None):
+	def __init__(self, r0=None,alpha=None,prefactor=None, rCut=None, tailDelta=None):
 		reqArgs = [r0,alpha,prefactor]
 		if None in reqArgs:
 			raise TypeError("Missing parameter when creating ExpDecayFunct")
@@ -137,13 +138,25 @@ class ExpDecayFunct(AnalyticalIntRepr):
 		self.r0 = r0
 		self._alpha = alpha
 		self._prefactor = prefactor
+		self._rCut = rCut
+		self._tailDelta = tailDelta
+
+		if rCut is not None:
+			self.applyTail = True
+		else:
+			self.applyTail = False
 
 	def evalAtListOfXVals(self,xVals:iter):
 		outArray = np.zeros( (len(xVals)) )
 		alphaSqr = self._alpha*self._alpha
+
+		if self.applyTail:
+			tailArray = applyTailFunctToListOfXVals(xVals,self._rCut, self._tailDelta)
 		for idx,x in enumerate(xVals):
 			rDist = x - self.r0
 			outArray[idx] = self._prefactor * math.exp( (-1*alphaSqr*rDist) )
+			if self.applyTail:
+				outArray[idx] *= tailArray[idx]
 
 		return outArray
 
@@ -162,3 +175,13 @@ class ExpDecayFunct(AnalyticalIntRepr):
 		self._prefactor = val[0]
 		self._alpha = val[1]
 
+
+
+def applyTailFunctToListOfXVals(xVals,rCut,tailDelta):
+	outArray = np.zeros( (len(xVals)) )
+	for idx,x in enumerate(xVals):
+		if x >= rCut:
+			outArray[idx] = 0.0
+		else:
+			outArray[idx] = math.exp( tailDelta/(x-rCut) ) #Approaches 0 as x approaches rCut
+	return outArray

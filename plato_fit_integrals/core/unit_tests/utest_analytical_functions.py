@@ -114,13 +114,16 @@ class TestExpDecayFunct(unittest.TestCase):
 		self.alpha = -2.4
 		self.r0 = 1.0
 		self.testXVals = [0,1,2]
+		self.rCut = None
+		self.tailDelta = None
 
 	def runFunct(self):
 		outVals = self.testObj.evalAtListOfXVals(self.testXVals)
 		return outVals
 
 	def createObj(self):
-		self.testObj = tCode.ExpDecayFunct(r0=self.r0,prefactor=self.prefactor,alpha=self.alpha)		
+		self.testObj = tCode.ExpDecayFunct(r0=self.r0,prefactor=self.prefactor,alpha=self.alpha,rCut=self.rCut, tailDelta=self.tailDelta)		
+
 	def testExpValsForSimpleInputs(self):
 		self.createObj()
 		actVals = self.runFunct()
@@ -145,6 +148,15 @@ class TestExpDecayFunct(unittest.TestCase):
 		self.testObj.coeffs = [newPrefactor, newAlpha]
 		self.assertAlmostEqual(newPrefactor, self.testObj._prefactor)
 		self.assertAlmostEqual(newAlpha, self.testObj._alpha)
+
+	def testExpValsWithTailFunct(self):
+		self.rCut = 5.0
+		self.tailDelta = 0.5
+		self.createObj()
+		self.testXVals = self.testXVals + [self.rCut, 7.0]
+		expVals = [1435.7432127803,4.4124845129,0.0133367919,0,0]
+		actVals = self.runFunct()
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expVals,actVals)]
 
 
 if __name__ == '__main__':
