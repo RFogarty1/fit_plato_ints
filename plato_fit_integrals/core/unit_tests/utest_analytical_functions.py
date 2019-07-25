@@ -159,6 +159,40 @@ class TestExpDecayFunct(unittest.TestCase):
 		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expVals,actVals)]
 
 
+class TestCompositeAnalyticalFuncts(unittest.TestCase):
+
+	def setUp(self):
+		self.testXVals = [0,1,2]
+		self.testExpFunctA = tCode.ExpDecayFunct(r0=1.0,prefactor=5,alpha=-2.4,rCut=None, tailDelta=None)
+		self.testExpFunctB = tCode.ExpDecayFunct(r0=1.0,prefactor=2,alpha=-2.4,rCut=None, tailDelta=None)
+		self.createObj()
+
+	def createObj(self):
+		self.testObj = tCode.getCombinedAnalyticalReprs([self.testExpFunctA,self.testExpFunctB])
+
+	def runFunct(self):
+		return self.testObj.evalAtListOfXVals(self.testXVals)
+		
+	def testExpValsBasicCase(self):
+		functAExpVals = [1586.7416445893, 5, 0.015755558]
+		functBExpVals = [634.6966578357, 2, 0.0063022232]
+		expVals = [a+b for a,b in it.zip_longest(functAExpVals,functBExpVals)]
+		actVals = self.runFunct()
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expVals,actVals)]
+
+	def testCorrectNumbCoeffs(self):
+		expVal = self.testExpFunctA.nCoeffs + self.testExpFunctB.nCoeffs
+		actVal = self.testObj.nCoeffs
+		self.assertEqual(expVal,actVal)
+
+	def testCoeffGetterAndSetterConsistent(self):
+		newCoeffs = [0.0,1.0,2.0,5.5]
+		expCoeffs = list(newCoeffs) #Defensive; changing coeffs in the object shouldnt changed expected coeffs
+		self.assertFalse( all([abs(x-y)<1e-6 for x,y in it.zip_longest(newCoeffs,self.testObj.coeffs)]) )
+		self.testObj.coeffs = newCoeffs
+		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expCoeffs, self.testObj.coeffs)]
+
+
 if __name__ == '__main__':
 	unittest.main()
 

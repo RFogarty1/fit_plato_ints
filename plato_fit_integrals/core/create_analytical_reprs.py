@@ -1,4 +1,5 @@
 
+import copy
 import itertools as it
 import math
 import numpy as np
@@ -24,7 +25,67 @@ class AnalyticalIntRepr():
 	def nCoeffs(self):
 		raise NotImplementedError("nCoeffs property getter not implemented on child class")
 
+	@property
+	def coeffs(self):
+		raise NotImplementedError("coeffs property getter not implemented on child class")
 
+	@coeffs.setter
+	def coeffs(self,val):
+		raise NotImplementedError("coeffs property getter not implemented on child class") #Wont actually get this error if getter is set
+
+
+def getCombinedAnalyticalReprs(aRepList,copyObjs=True):
+	""" Gets an object that represents the additive combination of AnalyticalIntRepr functions
+	
+	Args:
+		aRepList: List of individual objects with AnalyticalIntRepr interface
+		copyObjs (Bool): If true the returned object contains deep copies of input objects, else contains references to them
+	Returns
+		outARep: CompositeAnalyticalRepr(AnalyticalIntRepr) Object. Interface functions use the combination of each input function
+	(e.g. outARep.nCoeffs = sum([x.nCoeffs for x in aRepList])
+	
+	"""
+	if copyObjs:
+		useList = [copy.deepcopy(x) for x in aRepList]
+	else:
+		useList = list(aRepList)
+
+	return CompositeAnalyticalRepr(useList)
+
+class CompositeAnalyticalRepr(AnalyticalIntRepr):
+	""" Holds multiple AnalyticalIntRepr objects while implementing the AnalyticalIntRepr interface (defined methods are
+	a sum of all individual functions contributions
+	"""
+	def __init__(self, aRepList):
+		self._aRepList = aRepList
+
+
+	@property
+	def nCoeffs(self):
+		return sum([x.nCoeffs for x in self._aRepList])
+
+
+	@property
+	def coeffs(self):
+		outList = list()
+		for x in self._aRepList:
+			currCoeffs = list(x.coeffs)
+			outList.extend(currCoeffs)
+		return outList
+
+	#DUPLICATE CODE: essentially same thing is implemented in the coeffsToTables case
+	@coeffs.setter
+	def coeffs(self,val):
+		startIdx = 0
+		for aRep in self._aRepList:
+			aRep.coeffs = val[startIdx:startIdx+aRep.nCoeffs]
+			startIdx += aRep.nCoeffs
+
+	def evalAtListOfXVals(self,xVals:iter):
+		outVals = list()
+		for x in self._aRepList:
+			outVals.append( np.array(x.evalAtListOfXVals(xVals)) )
+		return sum(outVals)
 
 class Cawkwell17ModTailRepr(AnalyticalIntRepr):
 
