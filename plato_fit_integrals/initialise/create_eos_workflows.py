@@ -111,6 +111,7 @@ class EosWorkFlow(wflowCoord.WorkFlowBase):
 		self._outVals = ["v0","b0","e0","gof"]
 
 		self.output = SimpleNamespace()
+		self.extraOutput = SimpleNamespace() #place to store raw-data that the rest of the code wont see.
 
 		#This is originally a way to allow us to use ONLY the E0 value from the output files
 		if eosFromOutFilesFunct is None:
@@ -202,6 +203,7 @@ class EosWorkFlow(wflowCoord.WorkFlowBase):
 					setattr(self.output, attr, np.inf)
 				return None
 			self._setAttrsFromEosModelOneStruct(key,fittedEos)
+			setattr(self.extraOutput,"full_eos", fittedEos)
 
 #
 	def _setAttrsFromEosModelOneStruct(self,structKey, fittedEos):

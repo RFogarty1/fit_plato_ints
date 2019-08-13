@@ -3,26 +3,31 @@ import plato_pylib.utils.job_running_functs as jobRun
 from types import SimpleNamespace
 
 class WorkFlowCoordinator():
-	def __init__(self, workFlows:"list of WorkFlow objects", nCores=1):
+	def __init__(self, workFlows:"list of WorkFlow objects", nCores=1, quietPreShellComms=True):
 		self._workFlows = workFlows
 		self._ensureNoDuplicationBetweenWorkFlows()
 		self._nCores = nCores
+		self.quietPreShellComms = quietPreShellComms
 
-	def runAndGetPropertyValues(self):
-		self.run()
+	def runAndGetPropertyValues(self, inclPreRun=True):
+		self.run(inclPreRun)
 		return self.propertyValues
 
-	def run(self):
+	def run(self,inclPreRun=True):
+		if inclPreRun:
+			self._doPreRunComms()
+		for x in self._workFlows:
+			x.run()
+
+	def _doPreRunComms(self):
 		preRunComms = list()
 		for x in self._workFlows:
 			currShellComms = x.preRunShellComms
 			if x.preRunShellComms is not None:
 				preRunComms.extend(currShellComms)
+	
+		jobRun.executeRunCommsParralel(preRunComms,self._nCores,quiet=self.quietPreShellComms)
 
-		jobRun.executeRunCommsParralel(preRunComms,self._nCores,quiet=True)
-
-		for x in self._workFlows:
-			x.run()
 
 	@property
 	def propertyValues(self):
