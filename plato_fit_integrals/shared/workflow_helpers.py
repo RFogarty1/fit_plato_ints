@@ -1,4 +1,5 @@
 
+from types import SimpleNamespace
 
 VALID_PLATO_CODE_STRS = ["dft2","tb1"]
 VALID_CORR_TYPES = ["pairPot".lower(),"hopping", None]
@@ -54,16 +55,13 @@ def _getErrorStrForModOptDict(corrType=None,platoCode=None):
 
 
 
-#		if self.varyType is None: #Useful if we just want to run the workflow once without using correcting integrals
-#			pass
-#		elif self.varyType.lower() == "pairPot".lower():
-#			inpDict["addcorrectingppfrombdt".lower()] = 1
-#			if self.platoCode=="dft2":
-#				inpDict["e0method"] = 1
-#		elif self.varyType.lower() == "hopping".lower():
-#			inpDict["addcorrectinghopfrombdt"] = 1
-#			if self.platoCode=="dft":
-#				raise ValueError("varyType = {} is an invalid option for platoCode={}".format(self.varyType,self.platoCode))
-#		else:
-#			raise ValueError("varyType = {} is an invalid option".format(self.varyType))
-#
+def getCombinedNamespaceNoDuplicatedKeys(nSpaceA:"types.SimpleNamespace", nSpaceB):
+	dictA, dictB = vars(nSpaceA), vars(nSpaceB)
+
+	#Check for ducplication
+	keysA, keysB = list(dictA.keys()), list(dictB.keys())
+	assert len(keysA) + len(keysB) == len( keysA+keysB ), "Duplicate keys not supported"
+
+	dictA.update(dictB)
+	return SimpleNamespace(**dictA)
+

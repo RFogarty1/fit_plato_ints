@@ -1,12 +1,15 @@
 
 import plato_pylib.utils.job_running_functs as jobRun
+
+from plato_fit_integrals.shared.workflow_helpers import getCombinedNamespaceNoDuplicatedKeys
+
 from types import SimpleNamespace
 
 class WorkFlowCoordinator():
 	def __init__(self, workFlows:"list of WorkFlow objects", nCores=1, quietPreShellComms=True):
 		self._workFlows = workFlows
 		self._ensureNoDuplicationBetweenWorkFlows()
-		self._nCores = nCores
+		self.nCores = nCores
 		self.quietPreShellComms = quietPreShellComms
 
 	def runAndGetPropertyValues(self, inclPreRun=True):
@@ -20,13 +23,17 @@ class WorkFlowCoordinator():
 			x.run()
 
 	def _doPreRunComms(self):
+		preRunComms = self.preRunShellComms
+		jobRun.executeRunCommsParralel(preRunComms,self.nCores,quiet=self.quietPreShellComms)
+
+	@property
+	def preRunShellComms(self):
 		preRunComms = list()
 		for x in self._workFlows:
 			currShellComms = x.preRunShellComms
 			if x.preRunShellComms is not None:
 				preRunComms.extend(currShellComms)
-	
-		jobRun.executeRunCommsParralel(preRunComms,self._nCores,quiet=self.quietPreShellComms)
+		return preRunComms
 
 
 	@property
@@ -72,17 +79,6 @@ class WorkFlowCoordinator():
 				raise ValueError("Duplicate work folders {} found in different workflows".format(x.workFolder))
 			else:
 				allWorkFolders.append(x.workFolder)
-
-
-def getCombinedNamespaceNoDuplicatedKeys(nSpaceA:"types.SimpleNamespace", nSpaceB):
-	dictA, dictB = vars(nSpaceA), vars(nSpaceB)
-
-	#Check for ducplication
-	keysA, keysB = list(dictA.keys()), list(dictB.keys())
-	assert len(keysA) + len(keysB) == len( keysA+keysB ), "Duplicate keys not supported"
-
-	dictA.update(dictB)
-	return SimpleNamespace(**dictA)
 
 
 class WorkFlowBase():
