@@ -1,7 +1,7 @@
 
 from types import SimpleNamespace
 
-VALID_PLATO_CODE_STRS = ["dft2","tb1"]
+VALID_PLATO_CODE_STRS = ["dft2","tb1","dft"]
 VALID_CORR_TYPES = ["pairPot".lower(),"hopping", None]
 
 def modOptDictBasedOnCorrTypeAndPlatoCode(optDict, corrType:str, platoCode:str):
