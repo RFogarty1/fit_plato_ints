@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import itertools as it
 import unittest
 import unittest.mock as mock
@@ -84,11 +85,47 @@ class TestCreateObjFunctCalculator(unittest.TestCase):
 		with self.assertRaises(AssertionError):
 			self.runTestFunct()
 
-
 def createMockECurveWorkFlow(outAttrs:list):
 	outObj = mock.Mock()
 	outObj.namespaceAttrs = outAttrs
 	return outObj
+
+
+
+class TestStructEnergiesWorkFlow(unittest.TestCase):
+
+	def setUp(self):
+		self.structList = list()
+		self.modOptsDict = dict()
+		self.workFolder = os.getcwd()
+		self.platoCode = "dft2"
+		self.outAttr = "energies_per_atom"
+		self.varyType = None
+		self.eType = "electronicCohesiveE"
+		self.ePerAtom = True
+		self.createTestObj()
+
+	def createTestObj(self):
+		self.testObjA = tCode.CreateStructEnergiesWorkFlow(self.structList, self.modOptsDict, self.workFolder, self.platoCode,
+		                                                   varyType=self.varyType, outAttr=self.outAttr, eType=self.eType, ePerAtom=self.ePerAtom) ()
+
+	@mock.patch("plato_fit_integrals.initialise.create_ecurve_workflows.platoOut.parsePlatoOutFile")
+	@mock.patch("plato_fit_integrals.initialise.create_ecurve_workflows.StructEnergiesWorkFlow.outFilePaths",new_callable=mock.PropertyMock)
+	def testEnergiesPerAtomApplied(self, outPathsMock, parseOutMock):
+		outPathsMock.return_value =  ["fake_path"]
+		parseOutMock.return_value = getParsePlatoFakeDictA()
+		expEnergyVal = 7.1
+		self.testObjA.run()
+		actEnergyVal = getattr(self.testObjA.output,self.outAttr)[0]
+		self.assertAlmostEqual(expEnergyVal,actEnergyVal)
+
+
+def getParsePlatoFakeDictA():
+	outDict = dict()
+	outDict["energies"] = SimpleNamespace(electronicCohesiveE=14.2)
+	outDict["numbAtoms"] = 2
+	return outDict
+
 
 if __name__ == '__main__':
 	unittest.main()
