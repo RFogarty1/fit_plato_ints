@@ -15,7 +15,7 @@ import plato_pylib.plato.parse_plato_out_files as parsePlatoOut
 import plato_pylib.utils.defects as defects
 
 class CreateInterstitialWorkFlow():
-	def __init__(self, structRef, structInter, startFolder, modOptDict, platoComm, genPreShellComms=True, relaxed="relaxed", interType="generic", cellDims=None):
+	def __init__(self, structRef, structInter, startFolder, modOptDict, platoComm, genPreShellComms=True, relaxed="relaxed", interType="generic", cellDims=None, eType="electronicCohesiveE"):
 		""" Creates InterstitialWorkFlow Factory instance. Follow initiation straight by a call to just get the relevant workflow 
 		
 		Args:
@@ -27,6 +27,7 @@ class CreateInterstitialWorkFlow():
 			platoComm: Str, plato program used. tb1/dft2/dft are supported options at time of writing
 			genPreShellComms(Optional): Bool, whether the created objects can generate plato-run commands. If False, no plato jobs will be run.
 			                            Purpose is to make workFlows easier to use outside fitting code. Default=True
+			eType(Optional): str, the energy type to use. See energies object in plato_pylib. One possible option is electronicTotalE
 
 		Optional Args for object labelling:
 		These optional arguments are all used to label the created object, such that you calculate multiple
@@ -52,6 +53,7 @@ class CreateInterstitialWorkFlow():
 		self.modOptDict = modOptDict
 		self.platoComm = platoComm
 		self.genPreShellComms = genPreShellComms
+		self.eType = eType
 
 	def getRunOptsDict(self):
 		outDict = modInp.getDefOptDict(self.platoComm)
@@ -63,7 +65,7 @@ class CreateInterstitialWorkFlow():
 		outLabel =  "{}_{}_{}".format(self.interType, self.relaxed, cellDimStr)
 		workFolder = os.path.abspath( os.path.join(self.startFolder,outLabel) )
 		runOptsDict = self.getRunOptsDict()
-		return InterstitialWorkFlow(self.structInter, self.structRef, workFolder, self.platoComm, runOptsDict, outLabel, genPreShellComms=self.genPreShellComms)
+		return InterstitialWorkFlow(self.structInter, self.structRef, workFolder, self.platoComm, runOptsDict, outLabel, genPreShellComms=self.genPreShellComms, eType=self.eType)
 
 
 class CompositeInterstitialWorkFlow(wFlowCoord.WorkFlowBase):
@@ -147,14 +149,14 @@ class CompositeInterstitialWorkFlow(wFlowCoord.WorkFlowBase):
 
 class InterstitialWorkFlow(wFlowCoord.WorkFlowBase):
 
-	def __init__(self, interstitStruct, refStruct, workFolder, platoComm, runOptsDict, label, genPreShellComms=True):
+	def __init__(self, interstitStruct, refStruct, workFolder, platoComm, runOptsDict, label, genPreShellComms=True, eType="electronicCohesiveE"):
 		""" Dont call directly, see CreateInterstitialWorkFlow factory class """
 		self._interstitStruct = interstitStruct
 		self._refStruct = refStruct
 		self._workFolder = os.path.abspath(workFolder)
 		self._platoComm = platoComm
 		self._runOptsDict = runOptsDict
-		self._eType = "electronicCohesiveE" #TODO: Make this settable from the factory (with opt arg)
+		self._eType = eType
 		self.label = label
 		self.genPreShellComms = genPreShellComms
 
