@@ -78,16 +78,28 @@ class TestCreateObjFunctCalculator(unittest.TestCase):
 
 
 	def testRaisesForWrongWorkFlow(self):
-		""" Test we get ValueError if workFlow has more than 1 attribute """
+		""" Test we get AssertionError if workFlow has more than 1 attribute """
 		fakeWorkFlow = mock.Mock()
 		fakeWorkFlow.namespaceAttrs = ["fakeA","fakeB"]
 		self.inpWorkFlow = fakeWorkFlow
 		with self.assertRaises(AssertionError):
 			self.runTestFunct()
 
+	def testRaisesForRelEnergiesWorkFlowIfNoZeroEnergy(self):
+		""" Test we raise a AssertionError when applying to a relative-energies workflow if targetValues dont include a zero"""
+		fakeWorkFlow = mock.Mock()
+		fakeWorkFlow.namespaceAttrs = ["fakeA"]
+		fakeWorkFlow.relEnergies = True
+		self.inpWorkFlow = fakeWorkFlow
+		self.testTargVals = [2.0,3.0,-3.0] #Important that theres no zero
+		with self.assertRaises(AssertionError):
+			self.runTestFunct()
+
+
 def createMockECurveWorkFlow(outAttrs:list):
 	outObj = mock.Mock()
 	outObj.namespaceAttrs = outAttrs
+	outObj.relEnergies = False
 	return outObj
 
 
@@ -103,11 +115,13 @@ class TestStructEnergiesWorkFlow(unittest.TestCase):
 		self.varyType = None
 		self.eType = "electronicCohesiveE"
 		self.ePerAtom = True
+		self.relEnergies = False
 		self.createTestObj()
 
 	def createTestObj(self):
 		self.testObjA = tCode.CreateStructEnergiesWorkFlow(self.structList, self.modOptsDict, self.workFolder, self.platoCode,
-		                                                   varyType=self.varyType, outAttr=self.outAttr, eType=self.eType, ePerAtom=self.ePerAtom) ()
+		                                                   varyType=self.varyType, outAttr=self.outAttr, eType=self.eType, ePerAtom=self.ePerAtom,
+		                                                   relEnergies=self.relEnergies) ()
 
 	@mock.patch("plato_fit_integrals.initialise.create_ecurve_workflows.platoOut.parsePlatoOutFile")
 	@mock.patch("plato_fit_integrals.initialise.create_ecurve_workflows.StructEnergiesWorkFlow.outFilePaths",new_callable=mock.PropertyMock)
@@ -119,6 +133,19 @@ class TestStructEnergiesWorkFlow(unittest.TestCase):
 		actEnergyVal = getattr(self.testObjA.output,self.outAttr)[0]
 		self.assertAlmostEqual(expEnergyVal,actEnergyVal)
 
+	@mock.patch("plato_fit_integrals.initialise.create_ecurve_workflows.platoOut.parsePlatoOutFile")
+	@mock.patch("plato_fit_integrals.initialise.create_ecurve_workflows.StructEnergiesWorkFlow.outFilePaths",new_callable=mock.PropertyMock)
+	def testRelativeEnergiesValues(self, outPathsMock, parseOutMock):
+		outPathsMock.return_value = ["fake_pathA", "fake_pathB"]
+		parseOutMock.side_effect = [getParsePlatoFakeDictA(), getParsePlatoFakeDictB()]
+		expEnergyVals = [0.0,8.3]
+		self.relEnergies = True
+		self.createTestObj()
+		self.testObjA.run()
+		actEnergyVals = getattr(self.testObjA.output, self.outAttr)
+		for exp,act in it.zip_longest(expEnergyVals, actEnergyVals):
+			self.assertAlmostEqual(exp,act)
+
 
 def getParsePlatoFakeDictA():
 	outDict = dict()
@@ -126,6 +153,12 @@ def getParsePlatoFakeDictA():
 	outDict["numbAtoms"] = 2
 	return outDict
 
+
+def getParsePlatoFakeDictB():
+	outDict = dict()
+	outDict["energies"] = SimpleNamespace(electronicCohesiveE=15.4)
+	outDict["numbAtoms"] = 1
+	return outDict
 
 if __name__ == '__main__':
 	unittest.main()

@@ -95,12 +95,18 @@ def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTyp
 	
 	Raises:
 		ValueError: If invalid value of averageMethod is passed (error type may change later)
+		ValueError: If relEnergies is set on workflow, but no value near zero is found in targetVals
 		KeyError: If invalid value of functTypeStr is passed
 		AssertionError: If the input workflow has more than one output attribute
 	"""
 
 	objAttrs = inpWorkFlow.namespaceAttrs
 	assert len(objAttrs) == 1, "Valid workflow must have only one output attribute"
+
+	#Check we have a near-zero value if fitting to rel-errors
+	if inpWorkFlow.relEnergies:
+		minAbsEnergies = min([ abs(x) for x in targetVals ])
+		assert minAbsEnergies < 1e-5, "At least 1 energy needs to be close to zero when fitting to relative energies curves"
 
 
 	attrName = objAttrs[0]
@@ -113,7 +119,7 @@ def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTyp
 
 #Factory has as similar as possible an interface with the EOS one at time of writing
 class CreateStructEnergiesWorkFlow():
-	def __init__(self, structList, modOptsDict, workFolder, platoCode, varyType="pairPot", outAttr="energy_vals", eType="electronicCohesiveE", ePerAtom=False):
+	def __init__(self, structList, modOptsDict, workFolder, platoCode, varyType="pairPot", outAttr="energy_vals", eType="electronicCohesiveE", ePerAtom=False, relEnergies=False):
 		""" Create the StructureEnergies Factory instance. Follow initiation straight by a call to just get the relevant workflow
 		
 		Args:
@@ -126,6 +132,7 @@ class CreateStructEnergiesWorkFlow():
 			outAttr: String that will appears in workflows output (i.e. the key to get the set of energies after running the workflow)
 			eType: String denoting the type of energy to take from the outfile. See plato_pylib EnergyVals class for options
 			ePerAtom: Bool, if True the total energy is divided by number of atoms in the simulation cell
+			relEnergies: Bool, if True then try to fit to energies relative to the lowest energy of structList (i.e. absolute values irrelevant)
 
 		Raises:
 			Errors
@@ -139,6 +146,7 @@ class CreateStructEnergiesWorkFlow():
 		self.varyType = varyType
 		self.eType = eType
 		self.ePerAtom = ePerAtom
+		self.relEnergies = relEnergies
 
 	@property
 	def optDict(self):
@@ -148,14 +156,14 @@ class CreateStructEnergiesWorkFlow():
 		return outDict
 
 	def __call__(self):
-		outObj = StructEnergiesWorkFlow(self.structList, self.optDict, self.workFolder, self.platoCode,self.outAttr, self.varyType, eType=self.eType, ePerAtom=self.ePerAtom)
+		outObj = StructEnergiesWorkFlow(self.structList, self.optDict, self.workFolder, self.platoCode,self.outAttr, self.varyType, eType=self.eType, ePerAtom=self.ePerAtom, relEnergies=self.relEnergies)
 		return outObj
 
 
 
 
 class StructEnergiesWorkFlow(wflowCoord.WorkFlowBase):
-	def __init__(self, structList, runOpts, workFolder, platoCodeStr, outAttr, varyType, eType="electronicCohesiveE", ePerAtom=False):
+	def __init__(self, structList, runOpts, workFolder, platoCodeStr, outAttr, varyType, eType="electronicCohesiveE", ePerAtom=False, relEnergies=False):
 		self.platoCodeStr = platoCodeStr
 		self.runOpts = runOpts
 		self._workFolder = os.path.abspath(workFolder)
@@ -165,6 +173,7 @@ class StructEnergiesWorkFlow(wflowCoord.WorkFlowBase):
 		self.eType=eType
 		self.varyType=varyType
 		self.ePerAtom = ePerAtom
+		self.relEnergies = relEnergies	
  
 		#Need to create input files only once, on initiation
 		pathlib.Path(self.workFolder).mkdir(exist_ok=True,parents=True)
@@ -193,6 +202,10 @@ class StructEnergiesWorkFlow(wflowCoord.WorkFlowBase):
 			if self.ePerAtom:
 				currEnergy = currEnergy / parsedFile["numbAtoms"]
 			allEnergies.append(currEnergy)
+		if self.relEnergies:
+			minE = min(allEnergies)
+			allEnergies = [x-minE for x in allEnergies]
+
 		setattr(self.output, self.outAttr, allEnergies)
 
 	def _writeInpFiles(self):
