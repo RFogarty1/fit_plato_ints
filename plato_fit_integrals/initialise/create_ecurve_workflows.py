@@ -78,7 +78,7 @@ def _getDistTwoVectors(vectA,vectB):
 
 
 def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTypeStr, averageMethod="mean",catchOverflow=True, errorRetVal=1e30,
- normToErrorRetVal=False, greaterThanIsOk=False):
+ normToErrorRetVal=False, greaterThanIsOk=False, shiftToRefVals=True, **kwargs):
 	""" Creates an objective function calculator from an input workflow of class StructEnergiesWorkFlow.
 	    Works only because this workflow should only have a single output field.
 	
@@ -87,6 +87,8 @@ def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTyp
 		targetVals: List of the target energies
 		functTypeStr: Type of function to use for objective function - see createSimpleTargValObjFunction in
 		              obj_functs_targ_vals for details/options
+		shiftToRefVals(bool): Only does anything if dealing with relEnergies. In which case outputValues are made relative to the structure thats 0-energy in targetVals
+		                      before calculating errors (i.e. the identity of the 0-energy structure is ALWAYS the same and based on the target structures)
 		**kwargs: These are all passed unchanged to createSimpleTargValObjFunction; see that function for details
 
 	Returns
@@ -110,11 +112,38 @@ def createObjFunctCalculatorFromEcurveWorkflow(inpWorkFlow, targetVals, functTyp
 
 
 	attrName = objAttrs[0]
-	cmpFunct = ObjCmpFuncts.createVectorisedTargValObjFunction(functTypeStr, averageMethod=averageMethod, catchOverflow=catchOverflow, errorRetVal=errorRetVal,normToErrorRetVal=normToErrorRetVal, greaterThanIsOk=greaterThanIsOk)
+	cmpFunct = ObjCmpFuncts.createVectorisedTargValObjFunction(functTypeStr, averageMethod=averageMethod, catchOverflow=catchOverflow, errorRetVal=errorRetVal,normToErrorRetVal=normToErrorRetVal, greaterThanIsOk=greaterThanIsOk, **kwargs)
+
+	if shiftToRefVals and inpWorkFlow.relEnergies:
+		equaliseFunct = _getEqualizeZerosForRelEnergiesFunct()
+		cmpFunct = _wrapCmpFunctAroundPreProcessFunct(cmpFunct,equaliseFunct)
 
 	objFunct = objFunctCalc.ObjectiveFunctionContrib( SimpleNamespace(**{attrName:(targetVals,cmpFunct)}) ) 
 	return objFunct
 
+
+def _wrapCmpFunctAroundPreProcessFunct(cmpFunct, preProcessFunct):
+	def outFunct(targVals, actVals):
+		processed = preProcessFunct(targVals, actVals)
+		return cmpFunct(*processed)
+	return outFunct
+
+def _getEqualizeZerosForRelEnergiesFunct():
+	def outFunct(targVals,actVals):
+		minIdx = targVals.index( min(targVals) )	#Responsibility of higher level functions to make sure min energy is zero
+		refEnergy = actVals[minIdx]
+		newActVals = [x-refEnergy for x in actVals]
+		return (targVals,newActVals)
+	return outFunct
+
+##Used to make sure the same structure is always treated as the zero energy structure
+#def _wrapEqualiseZerosForRelEnergies(funct):
+#	def outFunct(targVals,actVals):
+#		minIdx = targVals.index( min(targVals) )	#Responsibility of higher level functions to make sure min energy is zero
+#		refEnergy = actVals[minIdx]
+#		newActVals = [x-refEnergy for x in actVals]
+#		return (targVals,newActVals)
+#	return outFunct
 
 
 #Factory has as similar as possible an interface with the EOS one at time of writing
