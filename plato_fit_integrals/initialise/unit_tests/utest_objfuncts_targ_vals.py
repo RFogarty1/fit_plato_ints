@@ -30,20 +30,34 @@ class TestBasicMSDFunction(unittest.TestCase):
 		self.assertEqual(expVal,actVal)
 
 
-class TestVectorisedRelSqrDev(unittest.TestCase):
+class TestVectorisedCreator(unittest.TestCase):
 	
 	def setUp(self):
 		self.functTypeStr = "relRootSqrDev".lower()
 		self.averageMethod = "mean"
+		self.divErrorsByNormFactor = None
+		self.createFunction()
 
+	def createFunction(self):
+		self.testFunct = tCode.createVectorisedTargValObjFunction(self.functTypeStr, averageMethod=self.averageMethod,divideErrorsByNormFactor=self.divErrorsByNormFactor)
 
 	def testMeanMethodGivesExpOutput(self):
 		targVals = [1,3,5]
 		inpVals = [2,8,3]
 		expAnswer = 1.0222222
-		objFunct = tCode.createVectorisedTargValObjFunction(self.functTypeStr, averageMethod=self.averageMethod)
-		actAnswer = objFunct(targVals,inpVals)
+		actAnswer = self.testFunct(targVals,inpVals)
 		self.assertAlmostEqual(expAnswer, actAnswer)
+
+	def testDivByConstantGivesExpOutput(self):
+		targVals = [1,3,5]
+		inpVals = [2,8,3]
+		normFactor = 2.5
+		expAnswer = 1.0222222/normFactor
+		self.divErrorsByNormFactor = normFactor
+		self.createFunction()
+		actAnswer = self.testFunct(targVals,inpVals)
+		self.assertAlmostEqual(expAnswer,actAnswer)
+
 
 
 class TestVectorisedGreaterThanDecorator(unittest.TestCase):

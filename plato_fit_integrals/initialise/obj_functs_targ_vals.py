@@ -46,7 +46,33 @@ def applyGreaterThanIsOkDecorator(funct):
 	return outFunct
 
 
-def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",catchOverflow=True, errorRetVal=1e30, normToErrorRetVal=False, greaterThanIsOk=False):
+def applyDivByConstantDecorator(funct, constant):
+	def outFunct(*args,**kwargs):
+		outVal = funct(*args,**kwargs)
+		return outVal / constant
+	return outFunct
+	
+
+def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",catchOverflow=True, errorRetVal=1e30, normToErrorRetVal=False, greaterThanIsOk=False,
+divideErrorsByNormFactor=None):
+	""" Creates a comparison function that operators on (iterA,iterB) and returns a single value representing their similarity
+	
+	Args:
+		functTypeStr(str): Key for selecting a base function for comparing two single numbers. e.g. "absdev" means a function returning the absolute difference.
+		                   All possible values can be found in OBJ_FUNCT_DICT
+		averageMethod(str): Determines how we convert an array of errors (obtained by applying functTypeStr function to all pairs of values) to a single error value
+		catchOverflow(bool): If True we catch overflow errors when comparing numbers, we replace the (overflowed) error value with errorRetVal
+		errorRetVal(float): see catchOverflow
+		normToErrorRetVal(bool): If True we ensure that all output values are between - and 1. We do this by divinding values by errorRetVal, and still setting the answer
+		                         to 1 even if they go above that value
+		greaterThanIsOk(bool): If True then the cmpFunct(expVal,actVal) returns 0 if expVal>=actVal, regardless on the actual type of cmpFunct(which is determined by functTypeStr)
+		divideErrorsByNormFactor(float): If not None, then we divide the output error by this value. The original purpose is to get a normalised error based on target values;
+		                                 this is accomplished by setting this arg to the average expVal, and using the absdev cmp function.
+
+	Returns
+		outFunct(targIter,actIter)->error: Single function that works on two input iterators. Order of targIter and actIter probably wont matter.
+	
+	"""
 	baseFunct = createSimpleTargValObjFunction(functTypeStr, catchOverflow=False, greaterThanIsOk=greaterThanIsOk)
 	def vectorizedFunct(targVals,actVals):
 		outVals = list()
@@ -60,6 +86,9 @@ def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",ca
 		outFunct = applyMeanDecorator(outFunct)
 	else:
 		raise ValueError("{} is not a supported option for averageMethod".format(averageMethod))
+
+	if divideErrorsByNormFactor is not None:
+		outFunct = applyDivByConstantDecorator(outFunct, divideErrorsByNormFactor)
 
 	if catchOverflow:
 		outFunct = catchOverflowDecorator(outFunct,errorRetVal)

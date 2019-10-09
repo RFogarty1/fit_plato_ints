@@ -69,6 +69,25 @@ class _WorkFlowCompareIntsVsRef(wFlow.WorkFlowBase):
 		objFunctVal = self.objFunct(self.refInts,newInts)
 		self.output = SimpleNamespace( **{self.propName:objFunctVal} )
 
+
+
+
+def getObjFunctForYValsInArraysFromVectorisedFunct(vectFunct):
+	""" Takes a function with interface (iterA,iterB)->value and returns one that applies it to the 2nd col of two np arrays
+	
+	Args:
+		vectFunct: Any function with the interface (iterA,iterB)->value should work (value probably needs to be a number)
+			
+	Returns
+		outFunct(npArrayA,npArrayB)->value: A function that applies vectFunct as vectFunct(arrayA[:,1],arrayB[:,1])
+	
+	"""
+	def outFunct(arrayA,arrayB):
+		return vectFunct(arrayA[:,1],arrayB[:,1])
+	return outFunct
+
+
+
 def _createRmsdObjFunct():
 	def rmsdFunct(targInts,actInts):
 		sqrDiffs = list()

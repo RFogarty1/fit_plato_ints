@@ -61,13 +61,14 @@ class TestCreateObjFunctCalculator(unittest.TestCase):
 		self.testCalcVals = SimpleNamespace(**{self.outAttr:[3.0,5.0]})
 		self.testTargVals = [6.0,7.0]
 		self.avMethod = "mean"
+		self.shiftToRefVals=True
 		self.catchOverflow = True
 		self.errorRetVal = 1e30
 		self.normToErrorRetVal=False
 
 	def runTestFunct(self):
 		outVal = tCode.createObjFunctCalculatorFromEcurveWorkflow(self.inpWorkFlow, self.testTargVals, self.functTypeStr, self.avMethod,
-		                                                          self.catchOverflow, self.errorRetVal, self.normToErrorRetVal)
+		                                                          self.catchOverflow, self.errorRetVal, self.normToErrorRetVal, shiftToRefVals=self.shiftToRefVals)
 		return outVal
 
 	def testExpObjFunctValSetA(self):
@@ -75,6 +76,17 @@ class TestCreateObjFunctCalculator(unittest.TestCase):
 		expObjFunctVal = 0.5*sum([(3/6),(2/7)])
 		actObjFunctVal = objFunctCalculator.calculateObjFunction(self.testCalcVals) 
 		self.assertAlmostEqual(expObjFunctVal,actObjFunctVal)
+
+	def testExpObjFunctValRelEnergiesCase(self):
+		""" Test we get expected values for relative energies case, where lowest energy is different for target and actual vals """
+		self.inpWorkFlow = self._createMockWorkFlowRelativeEnergies()
+		testCalcVals = SimpleNamespace( **{self.inpWorkFlow.namespaceAttrs[0]: [0.0,5.0,3.0]} )
+		self.testTargVals = [6.0,0.0,3.0]
+		self.functTypeStr = "absdev" #Simplest to calc
+		expOutVal = 16/3
+		testObj = self.runTestFunct()
+		actOutVal = testObj.calculateObjFunction(testCalcVals)
+		self.assertAlmostEqual(expOutVal, actOutVal)
 
 
 	def testRaisesForWrongWorkFlow(self):
@@ -87,13 +99,17 @@ class TestCreateObjFunctCalculator(unittest.TestCase):
 
 	def testRaisesForRelEnergiesWorkFlowIfNoZeroEnergy(self):
 		""" Test we raise a AssertionError when applying to a relative-energies workflow if targetValues dont include a zero"""
-		fakeWorkFlow = mock.Mock()
-		fakeWorkFlow.namespaceAttrs = ["fakeA"]
-		fakeWorkFlow.relEnergies = True
+		fakeWorkFlow = self._createMockWorkFlowRelativeEnergies()
 		self.inpWorkFlow = fakeWorkFlow
 		self.testTargVals = [2.0,3.0,-3.0] #Important that theres no zero
 		with self.assertRaises(AssertionError):
 			self.runTestFunct()
+
+	def _createMockWorkFlowRelativeEnergies(self):
+		fakeWorkFlow = mock.Mock()
+		fakeWorkFlow.namespaceAttrs = ["fakeA"]
+		fakeWorkFlow.relEnergies = True
+		return fakeWorkFlow
 
 
 def createMockECurveWorkFlow(outAttrs:list):
