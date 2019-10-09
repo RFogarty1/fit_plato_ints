@@ -103,6 +103,17 @@ def _createSqrDevFunct():
 		return (valA-valB)**2
 	return sqrDev
 
+@registerObjFunctTargVals("absdev")
+def _createAbsDevFunct():
+	def absDev(valA,valB):
+		return abs(valA-valB)
+	return absDev
+
+@registerObjFunctTargVals("sqrRootAbsDev".lower())
+def _createSqrRootAbsDevFunct():
+	def sqrRootAbsDev(valA, valB):
+		return math.sqrt( abs(valA-valB) )
+	return sqrRootAbsDev
 
 @registerObjFunctTargVals("blank")
 def _createBlankObjFunct():
