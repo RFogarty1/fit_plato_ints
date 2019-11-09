@@ -5,6 +5,8 @@ import itertools as it
 import unittest
 import unittest.mock as mock
 
+import numpy as np
+
 from types import SimpleNamespace
 
 import plato_pylib.plato.mod_plato_inp_files as modInp
@@ -85,14 +87,6 @@ class TestCreateEosWithE1Vals(unittest.TestCase):
 			self.assertEqual( expModdedOptStrDict[key], fullInpDict[key] )
 		
 
-#class TestGetNonE0EnergyDict(unittest.TestCase):
-#
-#	def setUp(self):
-#		pass
-#
-#	def testSomething(self):
-#		self.assertTrue(False)
-#
 
 def getReqInpDictsForCreateWorkflowDataSetA():
 	structVols = [150,200,250]
@@ -110,6 +104,44 @@ def createMockUCellObjListFromVols(volList):
 		x.fractCoords = [[0.0,0.0,0.0,"X"]]
 		x._getMagVector = lambda x: 0.0
 	return outObjList
+
+
+
+class TestEosDeltaE0(unittest.TestCase):
+
+	def setUp(self):
+		self.structDict = {"hcp":[mock.Mock()], "bcc":[mock.Mock()]}
+		self.modOptsDict = dict()
+		self.workFolder = os.getcwd() #Needs to be safe to pass to os.path.abspath
+		self.platoCodeStr = "dft2"
+
+		self.stubData = np.zeros((2,2))
+
+	@unittest.mock.patch("plato_fit_integrals.initialise.create_eos_workflows.EosWorkFlow._createFilesOnInit")
+	def createTestObj(self, patchedCreate):
+		self.testObj = tCode.EosWorkFlow(self.structDict, self.modOptsDict, self.workFolder, self.platoCodeStr) 
+
+	def _createStubGetEosFunct(self):
+		outDict = {"hcp":{"e0":2 , "b0":10, "v0":10, "data":self.stubData, "fitatdatapoints":self.stubData},
+		           "bcc":{"e0":1 , "b0":10, "v0":10, "data":self.stubData, "fitatdatapoints":self.stubData} }
+		def stubFunct(key):
+			return outDict[key]
+		return stubFunct
+
+	def testExpectedDeltaE0Obtained(self):
+		self.createTestObj()
+		self.testObj._getEosOneStruct = self._createStubGetEosFunct()
+		self.testObj.run()
+
+		expDeltaE0 = {"bcc":0, "hcp":1}
+		actDeltaE0 = dict()
+		for key in expDeltaE0.keys():
+			actDeltaE0[key] = getattr(self.testObj.output, key + "_delta_e0")
+
+		for key in expDeltaE0.keys():
+			self.assertEqual( expDeltaE0[key], actDeltaE0[key] )
+
+
 
 
 

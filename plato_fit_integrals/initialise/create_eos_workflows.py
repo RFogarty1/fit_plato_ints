@@ -108,7 +108,7 @@ class EosWorkFlow(wflowCoord.WorkFlowBase):
 		self._workFolder = os.path.abspath(workFolder)
 		self._eosModel = eosModel
 
-		self._outVals = ["v0","b0","e0","gof"]
+		self._outVals = ["v0","b0","e0","gof","delta_e0"]
 
 		self.output = SimpleNamespace()
 		self.extraOutput = SimpleNamespace() #place to store raw-data that the rest of the code wont see.
@@ -120,6 +120,9 @@ class EosWorkFlow(wflowCoord.WorkFlowBase):
 
 		self.energiesMinusE0 = energiesMinusE0
 
+		self._createFilesOnInit()
+
+	def _createFilesOnInit(self):
 		#Only need to create the input files at initiation time
 		pathlib.Path(self.workFolder).mkdir(exist_ok=True,parents=True)
 		self._writeFiles()
@@ -205,13 +208,23 @@ class EosWorkFlow(wflowCoord.WorkFlowBase):
 			self._setAttrsFromEosModelOneStruct(key,fittedEos)
 			setattr(self.extraOutput,"full_eos", fittedEos)
 
-#
+		#Delta E values need setting at the end
+		allE0 = list()
+		for key in self.structDict.keys():
+			allE0.append( getattr(self.output,key+"_"+"e0") )
+		minE0 = min(allE0)
+
+		for key in self.structDict.keys():
+			currE0 = getattr(self.output,key+"_"+"e0") - minE0
+			setattr(self.output, key+"_"+"delta_e0", currE0)
+	
 	def _setAttrsFromEosModelOneStruct(self,structKey, fittedEos):
 		setattr(self.output,structKey+"_"+"v0", fittedEos["v0"])
 		setattr(self.output,structKey+"_"+"b0", fittedEos["b0"])
 		setattr(self.output,structKey+"_"+"e0", fittedEos["e0"])
 		gof = getRelRMSDForItersTargVsAct( fittedEos["data"][:,1], fittedEos["fitAtDataPoints".lower()][:,1] )
 		setattr(self.output,structKey+"_"+"gof", gof)
+
 
 def standardGetEosOneStruct(self:"eos WorkFlow class", structKey):
 	outFilePaths = [x.replace(".in",".out") for x in self._inpFilePathsDict[structKey]]
