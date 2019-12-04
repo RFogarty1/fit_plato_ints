@@ -1,6 +1,7 @@
 
 import types
 
+from . import base_objs as baseInitObjs
 import plato_fit_integrals.core.workflow_coordinator as wflowCoord
 
 
@@ -45,30 +46,7 @@ class SurfaceEnergiesWorkFlow(wflowCoord.WorkFlowBase):
 #TODO: I want both surfaceObj and bulkObj to have runComm, writeFile() and parseFile methods. The writeFile should use a variable on the object that 
 # lets the base folder be set to workFolder. The factory can handle the adapter needed for whatever the easiest to pass input object is
 
-class SurfaceRunnerBase():
-
-	def writeFiles(self):
-		raise NotImplementedError()
-
-	@property
-	def workFolder(self):
-		raise NotImplementedError()
-
-	@workFolder.setter
-	def workFolder(self, value):
-		raise NotImplementedError()
-
-	@property
-	def ePerAtom(self):
-		raise NotImplementedError()
-
-	@property
-	def nAtoms(self):
-		raise NotImplementedError()
-
-	@property
-	def runComm(self):
-		raise NotImplementedError()
+class SurfaceRunnerBase(baseInitObjs.PointDefectRunnerBase):
 
 	@property
 	def surfaceArea(self):
