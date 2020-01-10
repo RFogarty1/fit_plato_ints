@@ -16,7 +16,7 @@ import plato_fit_integrals.initialise.obj_functs_targ_vals as ObjCmpFuncts
 import plato_fit_integrals.shared.workflow_helpers as wFlowHelpers
 
 
-def createDimerDissocCurveStructs(dists:list, atomA:str, atomB:str):
+def createDimerDissocCurveStructs(dists:list, atomA:str, atomB:str, cubeSide=100):
 	""" Creates a set of UnitCell geometries for carrying out dimer-dissociation curve calculations
 	
 	Args:
@@ -31,7 +31,6 @@ def createDimerDissocCurveStructs(dists:list, atomA:str, atomB:str):
 		Errors
 	"""
 
-	cubeSide = 100
 	lattVects = [ [cubeSide, 0.0	 , 0.0	 ],
 				  [0.0	 , cubeSide, 0.0	 ],
 				  [0.0	 , 0.0	 , cubeSide] ]
