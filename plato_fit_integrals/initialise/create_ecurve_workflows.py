@@ -38,7 +38,7 @@ def createDimerDissocCurveStructs(dists:list, atomA:str, atomB:str, cubeSide=100
 	outGeoms = list()
 	for x in dists:
 		zFractDisp = x/cubeSide
-		atomACoords = [cubeSide/2 for x in range(3)] + [atomA]
+		atomACoords = [0.5 for x in range(3)] + [atomA]
 		atomBCoords = list(atomACoords)
 		atomBCoords[2] += zFractDisp
 		atomBCoords[-1] = atomB
