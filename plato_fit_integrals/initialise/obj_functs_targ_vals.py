@@ -45,6 +45,20 @@ def applyGreaterThanIsOkDecorator(funct):
 			return funct(targVal,actVal)
 	return outFunct
 
+def applyLessThanIsOkDecorator(funct):
+	def outFunct(targVal, actVal):
+		if actVal < targVal:
+			return 0
+		else:
+			return funct(targVal, actVal)
+	return outFunct
+
+def applyAbsValsDecorator(funct):
+	def outFunct(targVal,actVal):
+		return funct(abs(targVal),abs(actVal))
+	return outFunct
+
+
 
 def applyDivByConstantDecorator(funct, constant):
 	def outFunct(*args,**kwargs):
@@ -53,19 +67,21 @@ def applyDivByConstantDecorator(funct, constant):
 	return outFunct
 	
 
-def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",catchOverflow=True, errorRetVal=1e30, normToErrorRetVal=False, greaterThanIsOk=False,
+def createVectorisedTargValObjFunction(functTypeStr:str, averageMethod="mean",catchOverflow=True, errorRetVal=1e30, normToErrorRetVal=False, greaterThanIsOk=False, lessThanIsOk=False, useAbsVals=False,
 divideErrorsByNormFactor=None):
 	""" Creates a comparison function that operators on (iterA,iterB) and returns a single value representing their similarity
 	
 	Args:
 		functTypeStr(str): Key for selecting a base function for comparing two single numbers. e.g. "absdev" means a function returning the absolute difference.
-		                   All possible values can be found in OBJ_FUNCT_DICT
+		                   All possible values can be found in OBJ_FUNCT_DICT. The function this gives has interface cmpFunct(expVal,actVal)->objVal
 		averageMethod(str): Determines how we convert an array of errors (obtained by applying functTypeStr function to all pairs of values) to a single error value
 		catchOverflow(bool): If True we catch overflow errors when comparing numbers, we replace the (overflowed) error value with errorRetVal
 		errorRetVal(float): see catchOverflow
 		normToErrorRetVal(bool): If True we ensure that all output values are between - and 1. We do this by divinding values by errorRetVal, and still setting the answer
 		                         to 1 even if they go above that value
 		greaterThanIsOk(bool): If True then the cmpFunct(expVal,actVal) returns 0 if expVal>=actVal, regardless on the actual type of cmpFunct(which is determined by functTypeStr)
+		lessThanIsOk(bool): If True then the cmpFunct(expVal, actVal) returns 0 if expVal<=actVal, regardless on the actual type of cmpFunct(which is determined by functTypeStr)
+		useAbsVals(bool): If True then the cmpFunct(expVal,actVal) will use abs(expVal) and abs(actVal) as inputs. Useful if you only care about the magnitude of your errors. Note: This is applied BEFORE less than/greater than functionality; so if mixed the <,> operators are appleid to abs(expVal) and abs(actVal)
 		divideErrorsByNormFactor(float): If not None, then we divide the output error by this value. The original purpose is to get a normalised error based on target values;
 		                                 this is accomplished by setting this arg to the average expVal, and using the absdev cmp function.
 
@@ -73,7 +89,7 @@ divideErrorsByNormFactor=None):
 		outFunct(targIter,actIter)->error: Single function that works on two input iterators. Order of targIter and actIter probably wont matter.
 	
 	"""
-	baseFunct = createSimpleTargValObjFunction(functTypeStr, catchOverflow=False, greaterThanIsOk=greaterThanIsOk)
+	baseFunct = createSimpleTargValObjFunction(functTypeStr, catchOverflow=False, greaterThanIsOk=greaterThanIsOk, lessThanIsOk=lessThanIsOk, useAbsVals=useAbsVals)
 	def vectorizedFunct(targVals,actVals):
 		outVals = list()
 		tVals, aVals = copy.deepcopy(targVals), copy.deepcopy(actVals)
@@ -99,7 +115,7 @@ divideErrorsByNormFactor=None):
 
 	return outFunct
 
-def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRetVal=1e30, greaterThanIsOk=False):
+def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRetVal=1e30, greaterThanIsOk=False, lessThanIsOk=False, useAbsVals=False):
 	""" Creates an objective function that takes input (targetVal, actVal) where both are single numbers
 	
 	Args:
@@ -108,6 +124,9 @@ def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRe
 		catchOverflow: Bool. If set to True then whenever an overflow error occurs then errorRetVal is returned by the function
 		errorRetVal: Return value if a caught error is thrown (only overflows at the time of writing)
 		greaterThanIsOk: Bool, If true then the cmp function is set to zero if actual value>target value.
+		lessThanIsOk(bool): If True then the cmpFunct(expVal, actVal) returns 0 if expVal<=actVal, regardless on the actual type of cmpFunct(which is determined by functTypeStr)
+		useAbsVals(bool): If True then the cmpFunct(expVal,actVal) will use abs(expVal) and abs(actVal) as inputs. Useful if you only care about the magnitude of your errors. Note: This is applied BEFORE less than/greater than functionality; so if mixed the <,> operators are appleid to abs(expVal) and abs(actVal)
+
 	Returns
 		objFunct: Function with interface (targetVal, actVal)->output value.
 	
@@ -119,6 +138,13 @@ def createSimpleTargValObjFunction(functTypeStr:str, catchOverflow=True, errorRe
 
 	if greaterThanIsOk:
 		basicObjFunct = applyGreaterThanIsOkDecorator(basicObjFunct)
+
+	if lessThanIsOk:
+		basicObjFunct = applyLessThanIsOkDecorator(basicObjFunct)
+
+	#NOTE: This needs to be on the outside (after greater/less than but before overflow catching)
+	if useAbsVals:
+		basicObjFunct = applyAbsValsDecorator(basicObjFunct)
 
 	if catchOverflow:
 		basicObjFunct = catchOverflowDecorator(basicObjFunct, errorRetVal)

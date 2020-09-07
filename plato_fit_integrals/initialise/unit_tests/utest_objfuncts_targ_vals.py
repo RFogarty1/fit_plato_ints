@@ -60,25 +60,52 @@ class TestVectorisedCreator(unittest.TestCase):
 
 
 
-class TestVectorisedGreaterThanDecorator(unittest.TestCase):
+class TestVectorisedDecoratorOptions(unittest.TestCase):
 
 	def setUp(self):
 		self.functTypeStr = "sqrdev".lower()
 		self.averageMethod = "mean"
 		self.catchOverflow = True
-		self.greaterThanIsOk = True
+		self.greaterThanIsOk = False
+		self.lessThanIsOk = False
+		self.useAbsVals = False
 		self.targVals = [2,3,0]
 		self.actVals = [1,2,3]
 
 	def runFunct(self):
-		cmpFunct = tCode.createVectorisedTargValObjFunction(self.functTypeStr, greaterThanIsOk=self.greaterThanIsOk, averageMethod=self.averageMethod, catchOverflow=self.catchOverflow)
+		currKwargs = {"greaterThanIsOk":self.greaterThanIsOk, "averageMethod":self.averageMethod,
+		              "catchOverflow":self.catchOverflow, "lessThanIsOk":self.lessThanIsOk, "useAbsVals":self.useAbsVals}
+		cmpFunct = tCode.createVectorisedTargValObjFunction(self.functTypeStr, **currKwargs)
 		outVal = cmpFunct(self.targVals, self.actVals)
 		return outVal
 
-	def testExpOutputGiven(self):
+	def testExpOutputGivenForGreaterThan(self):
+		self.greaterThanIsOk = True
 		expAnswer = 2/3
 		actAnswer = self.runFunct()
 		self.assertAlmostEqual(expAnswer, actAnswer)
+
+	def testExpOutputGivenForLessThan(self):
+		self.lessThanIsOk = True
+		expAnswer = 9/3
+		actAnswer = self.runFunct()
+		self.assertAlmostEqual(expAnswer, actAnswer)
+
+	def testUseAbsValsGivesExpectedVals(self):
+		self.useAbsVals = True
+		self.actVals = [-1,-2,-3]
+		expVal = 11/3
+		actVal = self.runFunct() 
+		self.assertAlmostEqual(expVal,actVal)
+
+	def testAbsValsMixedWithLessThan(self):
+		""" Demonstrates that abs than is applied before checking less-than """
+		self.useAbsVals = True
+		self.lessThanIsOk = True
+		self.actVals = [-1,-2,-3]
+		expVal = 9/3 #Same as the less-than test, since we essentially convert act-vals back to what they were
+		actVal = self.runFunct()
+		self.assertAlmostEqual(expVal, actVal)
 
 if __name__ == '__main__':
 	unittest.main()
