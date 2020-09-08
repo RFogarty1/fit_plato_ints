@@ -182,3 +182,13 @@ def _createRelRootSqrDevFunct():
 		rootSqrDev = math.sqrt( (targVal-actVal)**2 )
 		return abs(rootSqrDev/targVal)
 	return relRootSqrDevFunct
+
+@registerObjFunctTargVals("actMinusTarg".lower())
+def _createActMinusTargFunct():
+	def actMinusTargFunct(targVal, actVal):
+		outVal = actVal-targVal
+		return outVal
+	return actMinusTargFunct
+
+
+
